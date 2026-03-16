@@ -1,7 +1,11 @@
 <script setup lang="ts">
-    import ExempelKomponent from './components/ExempelKomponent.vue';
+  import BekraftaBeslutKomponent from './components/BekraftaBeslutKomponent.vue';
 </script>
 
-<template><div><ExempelKomponent /></div></template>
+<template>
+  <div>
+    <BekraftaBeslutKomponent handlaggning-id="41a4bd73-e19d-47bc-ac98-7a05e212d7bc" />
+  </div>
+</template>
 
-<style scoped></style>
+<style scoped></style>tyle>

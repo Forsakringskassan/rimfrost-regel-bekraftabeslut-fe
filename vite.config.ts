@@ -1,7 +1,6 @@
 import { resolve } from "node:path";
 import { URL, fileURLToPath } from "node:url";
 import { defineConfig } from "vite";
-
 import federation from "@originjs/vite-plugin-federation";
 import vue from "@vitejs/plugin-vue";
 import vueDevTools from "vite-plugin-vue-devtools";
@@ -13,12 +12,12 @@ export default defineConfig({
     vue(),
     vueDevTools(),
     federation({
-      name: "remote_app",
+      name: "bekraftaBeslutApp",
       filename: "remoteEntry.js",
       exposes: {
-        "./ExempelKomponent": "./src/components/ExempelKomponent.vue",
+        "./BekraftaBeslut": "./src/components/BekraftaBeslutkomponent.vue",
       },
-      shared: ["vue", "pinia"],
+      shared: ["vue", "@fkui/vue", "pinia"],
     }),
   ],
   resolve: {
@@ -35,10 +34,9 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      "/regel": "http://localhost:8890",
-      "/api": "http://localhost:3000"
+      "/api": "http://localhost:9003",
     },
-    port: 3034,
+    port: 3033,
   },
   define: { "process.env": '"production"' },
   build: {
@@ -46,13 +44,13 @@ export default defineConfig({
     lib: {
       formats: ["es"],
       entry: resolve(__dirname, "src/main.ts"),
-      name: "exempelKomponent",
+      name: "bekraftaBeslut",
     },
     rollupOptions: {
       output: {
         assetFileNames: (assetInfo) => {
           if (assetInfo.name?.endsWith(".css")) {
-            return "assets/exempelKomponent.css";
+            return "assets/bekraftaBeslut.css";
           }
           return assetInfo.name ?? "assets/[name][extname]";
         },
