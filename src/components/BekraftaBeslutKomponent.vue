@@ -46,50 +46,49 @@ const bffUrl = import.meta.env.VITE_BFF_URL || 'http://localhost:9003';
 async function fetchBeslutsdata() {
   loading.value = true;
   error.value = '';
+  console.log(`[fetchBeslutsdata] Hämtar beslutsdata för handlaggningId: ${props.handlaggningId}`);
   try {
     const response = await fetch(
       `${bffUrl}/api/regel/bekraftabeslut/${props.handlaggningId}`
     );
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     data.value = await response.json();
+    console.log(`[fetchBeslutsdata] ✅ 200 OK — data hämtad:`, data.value);
   } catch (err) {
     error.value = 'Ett fel uppstod vid hämtning av beslutsdata';
-    console.error(err);
+    console.error(`[fetchBeslutsdata] ❌ Fel:`, err);
   } finally {
     loading.value = false;
   }
 }
 
-async function patchErsattning(ersattningId: string, beslutsutfall: 'JA' | 'NEJ' | 'FU') {
-  try {
-    const response = await fetch(
-      `${bffUrl}/api/regel/bekraftabeslut/${props.handlaggningId}/ersattning/${ersattningId}`,
-      {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ersattning_id: ersattningId, beslutsutfall, signera: true })
-      }
-    );
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  } catch (err) {
-    error.value = 'Ett fel uppstod vid uppdatering av ersättning';
-    console.error(err);
-  }
-}
-
 async function bekraftaBeslut() {
+  if (!data.value?.ersattning) return;
   submitting.value = true;
   error.value = '';
+  console.log(`[bekraftaBeslut] Startar bekräftelse för handlaggningId: ${props.handlaggningId}`);
   try {
-    const response = await fetch(
-      `${bffUrl}/api/regel/bekraftabeslut/${props.handlaggningId}/done`,
-      { method: 'POST', headers: { 'Content-Type': 'application/json' } }
-    );
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    for (const ers of data.value.ersattning) {
+      console.log(`[bekraftaBeslut] PATCH ersattning_id: ${ers.ersattning_id} → FASTSTALLT`);
+      const response = await fetch(
+        `${bffUrl}/api/regel/bekraftabeslut/${props.handlaggningId}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ersattning_id: ers.ersattning_id,
+            ersattningsstatus: 'FASTSTALLT',
+          }),
+        }
+      );
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      console.log(`[bekraftaBeslut] ✅ ${response.status} OK — ersättning ${ers.ersattning_id} fastställd`);
+    }
     bekraftad.value = true;
+    console.log(`[bekraftaBeslut] ✅ Alla ersättningar fastställda — beslut bekräftat!`);
   } catch (err) {
     error.value = 'Ett fel uppstod vid bekräftelse av beslut';
-    console.error(err);
+    console.error(`[bekraftaBeslut] ❌ Fel:`, err);
   } finally {
     submitting.value = false;
   }
@@ -120,7 +119,6 @@ onMounted(() => {
             <th>Period</th>
             <th>Belopp</th>
             <th>Beslutsutfall</th>
-            <th>Åtgärd</th>
           </tr>
         </thead>
         <tbody>
@@ -129,18 +127,13 @@ onMounted(() => {
             <td>{{ ers.from }} – {{ ers.tom }}</td>
             <td>{{ ers.belopp }} kr</td>
             <td>{{ ers.beslutsutfall }}</td>
-            <td>
-              <FButton @click="patchErsattning(ers.ersattning_id, 'JA')">
-                Godkänn
-              </FButton>
-            </td>
           </tr>
         </tbody>
       </table>
 
       <div class="actions">
         <FButton @click="bekraftaBeslut" :disabled="submitting || bekraftad">
-          Bekräfta beslut
+          {{ submitting ? 'Bekräftar...' : 'Bekräfta beslut' }}
         </FButton>
       </div>
     </div>
