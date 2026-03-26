@@ -28,7 +28,7 @@ interface Kund {
 interface GetDataResponse {
   handlaggning_id: string;
   kund: Kund;
-  ersattningsYrkande: Ersattning[];
+  ersattning: Ersattning[];
 }
 
 const props = defineProps<{
@@ -60,21 +60,21 @@ async function fetchBeslutsdata() {
 }
 
 async function bekraftaBeslut() {
- if (!data.value?.ersattningsYrkande) {
+  if (!data.value?.ersattning) {
     error.value = 'Ingen ersättningsdata tillgänglig';
     return;
   }
   submitting.value = true;
-  error.value = ''; //rensar tidigare felmeddelanden
+  error.value = '';
   try {
-    for (const ersattningsYrkande of data.value.ersattningsYrkande) {
+    for (const item of data.value.ersattning) {
       const response = await fetch(
         `${bffUrl}/api/regel/bekraftabeslut/${props.handlaggningId}`,
         {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            ersattning_id: ersattningsYrkande.ersattning_id,
+            ersattning_id: item.ersattning_id,
             ersattningsstatus: 'FASTSTALLT',
           }),
         }
@@ -112,11 +112,11 @@ onMounted(() => {
           <h3 :class="headingSlotClass">Beslutsdata</h3>
         </template>
         <template #default>
-          <p v-for="ersattningsYrkande in data.ersattningsYrkande" :key="ersattningsYrkande.ersattning_id">
-            <strong>Typ: </strong>{{ ersattningsYrkande.ersattningstyp }}<br />
-            <strong>Period: </strong>{{ ersattningsYrkande.from }} – {{ ersattningsYrkande.tom }}<br />
-            <strong>Belopp: </strong>{{ ersattningsYrkande.belopp }} kr<br />
-            <strong>Beslutsutfall: </strong>{{ ersattningsYrkande.beslutsutfall }}
+          <p v-for="item in data.ersattning" :key="item.ersattning_id">
+            Typ: {{ item.ersattningstyp }}<br />
+            Period: {{ item.from }} – {{ item.tom }}<br />
+            Belopp: {{ item.belopp }} kr<br />
+            Beslutsutfall: {{ item.beslutsutfall }}
           </p>
         </template>
         <template #footer>
