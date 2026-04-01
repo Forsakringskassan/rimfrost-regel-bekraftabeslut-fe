@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { FButton, FCard } from '@fkui/vue';
+import { FButton, FCard, FStaticField, FTooltip, FLoader } from '@fkui/vue';
 
 interface Ersattning {
   ersattning_id: string;
@@ -35,16 +35,41 @@ const props = defineProps<{
   handlaggningId: string;
 }>();
 
-const loading = ref(false);
+const isInfoLoading = ref(true);
 const submitting = ref(false);
 const error = ref('');
 const data = ref<GetDataResponse | null>(null);
 const bekraftad = ref(false);
 
+const descriptionLoading = ref(false);
+const isDescriptionFetched = ref(false);
+const uppgiftsbeskrivning = ref('');
+
 const bffUrl = import.meta.env.VITE_BFF_URL || 'http://localhost:9003';
 
+const handleTooltipOpen = async () => {
+  if (isDescriptionFetched.value || descriptionLoading.value) {
+    return;
+  }
+  isDescriptionFetched.value = true;
+  descriptionLoading.value = true;
+  try {
+    const response = await fetch(`${bffUrl}/api/uppgiftsbeskrivning/BEKRAFTABESLUT`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const result = await response.json();
+    if (result && typeof result.beskrivning === 'string') {
+      uppgiftsbeskrivning.value = result.beskrivning;
+    }
+  } catch (err) {
+    console.error('Error fetching description:', err);
+    uppgiftsbeskrivning.value = '';
+  } finally {
+    descriptionLoading.value = false;
+  }
+};
+
 async function fetchBeslutsdata() {
-  loading.value = true;
+  isInfoLoading.value = true;
   error.value = '';
   try {
     const response = await fetch(
@@ -55,7 +80,7 @@ async function fetchBeslutsdata() {
   } catch (err) {
     error.value = 'Ett fel uppstod vid hämtning av beslutsdata';
   } finally {
-    loading.value = false;
+    isInfoLoading.value = false;
   }
 }
 
@@ -89,59 +114,116 @@ async function bekraftaBeslut() {
   }
 }
 
-onMounted(() => {
-  fetchBeslutsdata();
+function formatIsoDateToYmd(value?: string) {
+  if (!value) return '';
+  return value.includes('T') ? value.split('T')[0] : value;
+}
+
+onMounted(async () => {
+  await fetchBeslutsdata();
 });
 </script>
 
 <template>
   <div class="container">
-    <p v-if="loading">Laddar beslutsdata...</p>
-    <p v-if="error" class="error">{{ error }}</p>
-    <p v-if="bekraftad" class="success">Beslut bekräftat!</p>
+    <div>
+      <f-static-field>
+        <template #label>
+          Mer information om att bekräfta beslut
+        </template>
+        <template #tooltip>
+          <f-tooltip
+            screen-reader-text="Läs mer om uppgiften bekräfta beslut"
+            header-tag="h2"
+            @toggle="handleTooltipOpen"
+          >
+            <template #header>
+              Läs mer om uppgiften "Bekräfta beslut"
+            </template>
+            <template #body>
+              <span v-if="descriptionLoading">
+                <f-loader :show="descriptionLoading" :delay="true" style="margin-top: 2rem !important; min-height: 6.25rem;">
+                  Vänligen vänta
+                </f-loader>
+              </span>
+              <span v-else-if="uppgiftsbeskrivning">
+                {{ uppgiftsbeskrivning }}
+              </span>
+              <span v-else>
+                Ingen beskrivning tillgänglig.
+              </span>
+            </template>
+          </f-tooltip>
+        </template>
+      </f-static-field>
+    </div>
+    <div>
+      <f-loader :show="isInfoLoading" :delay="true" style="margin-top: 7rem !important; min-height: 6.25rem;">
+        Vänligen vänta
+      </f-loader>
+      <div v-if="!isInfoLoading">
+        <p v-if="error" class="error">{{ error }}</p>
+        <p v-if="bekraftad" class="success">Beslut bekräftat!</p>
 
-    <div v-if="data">
-      <h2>{{ data.kund.fornamn }} {{ data.kund.efternamn }}</h2>
-      <p v-if="data.kund.anstallning">
-        Arbetsgivare: {{ data.kund.anstallning.organisationsnamn }} —
-        {{ data.kund.anstallning.arbetstid_procent }}%
-      </p>
+        <h2 v-if="data" style="margin: 0rem 0 0.75rem !important;">Resultat {{ data.ersattning[0]?.ersattningstyp }}</h2>
 
-      <f-card>
-        <template #header="{ headingSlotClass }">
-          <h3 :class="headingSlotClass">Beslutsdata</h3>
-        </template>
-        <template #default>
-          <p v-for="item in data.ersattning" :key="item.ersattning_id">
-            Typ: {{ item.ersattningstyp }}<br />
-            Period: {{ item.from }} – {{ item.tom }}<br />
-            Belopp: {{ item.belopp }} kr<br />
-            Beslutsutfall: {{ item.beslutsutfall }}
-          </p>
-        </template>
-        <template #footer>
-          <div class="actions">
-            <FButton @click="bekraftaBeslut" :disabled="submitting || bekraftad">
-              {{ submitting ? 'Bekräftar...' : 'Bekräfta beslut' }}
-            </FButton>
-          </div>
-        </template>
-      </f-card>
+        <section v-if="data" class="kund-section">
+          <f-static-field>
+            <template #label>
+              <span>Kund</span>
+            </template>
+            <template #default>
+              <span>{{ data.kund.fornamn }} {{ data.kund.efternamn }}</span>
+            </template>
+          </f-static-field>
+
+          <f-static-field>
+            <template #label>
+              <span>Organisation</span>
+            </template>
+            <template #default>
+              <span>{{ data.kund.anstallning?.organisationsnamn || '-' }}</span>
+            </template>
+          </f-static-field>
+        </section>
+
+        <f-card v-if="data" v-for="ers in data.ersattning" :key="ers.ersattning_id" style="max-width: 50% !important;">
+          <template #default>
+            <p>Beslutsutfall: <span style="font-weight: 700">{{ ers.beslutsutfall }}</span></p>
+            <p>
+              Period:
+              <span style="font-weight: 700">{{ formatIsoDateToYmd(ers.from) }} - {{ formatIsoDateToYmd(ers.tom) }}</span>
+            </p>
+            <p>Belopp: <span style="font-weight: 700">{{ ers.belopp }} kr</span></p>
+          </template>
+
+          <template #footer>
+            <div class="actions">
+              <FButton @click="bekraftaBeslut" :disabled="submitting || bekraftad">
+                {{ submitting ? 'Bekräftar...' : 'Bekräfta beslut' }}
+              </FButton>
+            </div>
+          </template>
+        </f-card>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
 .container {
+  padding: 1rem;
+}
+.kund-section {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  padding: 1rem;
+  margin-bottom: 1rem;
 }
 .actions {
   display: flex;
   gap: 0.75rem;
-  margin-top: 1rem;
+  margin-top: 0 !important;
 }
 .error {
   color: red;
