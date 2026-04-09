@@ -3,9 +3,9 @@ import { ref, onMounted } from 'vue';
 import { FButton, FCard, FStaticField, FTooltip, FLoader } from '@fkui/vue';
 
 interface Ersattning {
-  ersattning_id: string;
+  ersattningId: string;
   ersattningstyp: string;
-  omfattning_procent: number;
+  omfattningProcent: number;
   belopp: number;
   berakningsgrund: number;
   beslutsutfall: 'JA' | 'NEJ' | 'FU';
@@ -20,13 +20,12 @@ interface Kund {
   kon: 'MAN' | 'KVINNA';
   anstallning?: {
     organisationsnamn: string;
-    arbetstid_procent: number;
-    lon?: { lonesumma: number };
+    arbetstidProcent: number;
   };
 }
 
 interface GetDataResponse {
-  handlaggning_id: string;
+  handlaggningId: string;
   kund: Kund;
   ersattning: Ersattning[];
 }
@@ -99,14 +98,22 @@ async function bekraftaBeslut() {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            ersattning_id: item.ersattning_id,
-            ersattningsstatus: 'FASTSTALLT',
+            ersattningId: item.ersattningId,
+            yrkandestatus: 'FASTSTALLT',
           }),
         }
       );
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
     }
+    const doneResponse = await fetch(
+      `${bffUrl}/api/regel/bekraftabeslut/${props.handlaggningId}/done`,
+      { method: 'POST' }
+    );
+    if (!doneResponse.ok) throw new Error(`HTTP ${doneResponse.status}`);
     bekraftad.value = true;
+    window.dispatchEvent(new CustomEvent('task-done', {
+      detail: { handlaggningId: props.handlaggningId },
+    }));
   } catch (err) {
     error.value = 'Ett fel uppstod vid bekräftelse av beslut';
   } finally {
@@ -187,7 +194,7 @@ onMounted(async () => {
           </f-static-field>
         </section>
 
-        <f-card v-if="data" v-for="ers in data.ersattning" :key="ers.ersattning_id" style="max-width: 50% !important;">
+        <f-card v-if="data" v-for="ers in data.ersattning" :key="ers.ersattningId" style="max-width: 50% !important;">
           <template #default>
             <p>Beslutsutfall: <span style="font-weight: 700">{{ ers.beslutsutfall }}</span></p>
             <p>
