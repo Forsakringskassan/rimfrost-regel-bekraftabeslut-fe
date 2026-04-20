@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { FButton, FCard, FStaticField, FTooltip, FLoader } from '@fkui/vue';
-import { useToast } from '../utils/useToast'
 
 interface Ersattning {
   ersattningId: string;
@@ -39,11 +38,10 @@ const isInfoLoading = ref(true);
 const submitting = ref(false);
 const data = ref<GetDataResponse | null>(null);
 const bekraftad = ref(false);
-
+const error = ref('');
 const descriptionLoading = ref(false);
 const isDescriptionFetched = ref(false);
 const uppgiftsbeskrivning = ref('');
-const toast = useToast()
 
 const bffUrl = import.meta.env.VITE_BFF_URL || 'http://localhost:9003';
 
@@ -77,7 +75,7 @@ async function fetchBeslutsdata() {
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     data.value = await response.json();
   } catch (err) {
-    toast.error('Ett fel uppstod vid hämtning av beslutsdata');
+   error.value = 'Ett fel uppstod vid hämtning av beslutsdata';
   } finally {
     isInfoLoading.value = false;
   }
@@ -85,10 +83,11 @@ async function fetchBeslutsdata() {
 
 async function bekraftaBeslut() {
   if (!data.value?.ersattning) {
-    toast.error('Ingen ersättningsdata tillgänglig');
+    error.value = 'Ingen ersättningsdata tillgänglig';
     return;
   }
   submitting.value = true;
+  error.value = '';
   try {
     for (const item of data.value.ersattning) {
       const response = await fetch(
@@ -110,22 +109,24 @@ async function bekraftaBeslut() {
     );
     if (!doneResponse.ok) throw new Error(`HTTP ${doneResponse.status}`);
 
-    bekraftad.value = true;
-    window.dispatchEvent(new CustomEvent('task-done', {
-      detail: {
-        handlaggningId: props.handlaggningId,
-        success: true,
-      },
-    }));
-  } catch (err) {
-    window.dispatchEvent(new CustomEvent('task-done', {
-      detail: {
-        handlaggningId: props.handlaggningId,
-        success: false,
-        message: 'Ett fel uppstod vid bekräftelse av beslut',
-      },
-    }));
-  } finally {
+   bekraftad.value = true;
+  window.dispatchEvent(new CustomEvent('task-done', {
+    detail: {
+      handlaggningId: props.handlaggningId,
+      success: true,
+      message: 'Beslut bekräftat och fastställt!',
+    },
+  }));
+} catch (err) {
+  console.error('❌ Hamnade i catch:', err)
+  window.dispatchEvent(new CustomEvent('task-done', {
+    detail: {
+      handlaggningId: props.handlaggningId,
+      success: false,
+      message: 'Ett fel uppstod vid bekräftelse av beslut',
+    },
+  }));
+} finally {
     submitting.value = false;
   }
 }

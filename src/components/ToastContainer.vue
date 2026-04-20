@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { useToast } from '../utils/useToast'
+import { useToast } from "../utils/useToast";
 
-const { toasts } = useToast()
+const { toasts } = useToast();
 </script>
 
 <template>
@@ -10,7 +10,7 @@ const { toasts } = useToast()
       v-for="toast in toasts"
       :key="toast.id"
       class="toast"
-      :class="'toast--' + toast.type"
+      :class="['toast--' + toast.type, { 'toast--removing': toast.removing }]"
     >
       {{ toast.message }}
     </div>
@@ -20,22 +20,29 @@ const { toasts } = useToast()
 <style scoped>
 .toast-container {
   position: fixed;
-  top: 1rem;
-  right: 1rem;
+  bottom: 6rem;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 9999;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
+  align-items: center;
 }
 
 .toast {
   padding: 1rem 2rem;
   border-radius: 4px;
   color: #fff;
-  font-size: 16px;
-  min-width: 300px;
+  font-size: 1.125rem;
+  min-width: 25rem;
+  text-align: center;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.4);
   animation: slideIn 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+.toast--removing {
+  animation: slideOut 0.3s ease forwards;
 }
 
 .toast--success { background: #227a52; }
@@ -44,7 +51,12 @@ const { toasts } = useToast()
 .toast--info { background: #2b6cb0; }
 
 @keyframes slideIn {
-  from { transform: translateX(100%); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes slideOut {
+  from { transform: translateY(0); opacity: 1; }
+  to { transform: translateY(100%); opacity: 0; }
 }
 </style>
