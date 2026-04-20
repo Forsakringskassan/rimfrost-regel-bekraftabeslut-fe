@@ -114,21 +114,14 @@ async function bekraftaBeslut() {
     detail: {
       handlaggningId: props.handlaggningId,
       success: true,
-      message: 'Beslut bekräftat och fastställt!',
+      message: 'Beslut bekräftat',
     },
   }));
 } catch (err) {
-  console.error('❌ Hamnade i catch:', err)
-  window.dispatchEvent(new CustomEvent('task-done', {
-    detail: {
-      handlaggningId: props.handlaggningId,
-      success: false,
-      message: 'Ett fel uppstod vid bekräftelse av beslut',
-    },
-  }));
+  error.value = 'Ett fel uppstod vid bekräftelse av beslut';
 } finally {
-    submitting.value = false;
-  }
+  submitting.value = false;
+}
 }
 
 function formatIsoDateToYmd(value?: string) {
