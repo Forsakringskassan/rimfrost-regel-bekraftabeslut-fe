@@ -36,10 +36,9 @@ const props = defineProps<{
 
 const isInfoLoading = ref(true);
 const submitting = ref(false);
-const error = ref('');
 const data = ref<GetDataResponse | null>(null);
 const bekraftad = ref(false);
-
+const error = ref('');
 const descriptionLoading = ref(false);
 const isDescriptionFetched = ref(false);
 const uppgiftsbeskrivning = ref('');
@@ -69,7 +68,6 @@ const handleTooltipOpen = async () => {
 
 async function fetchBeslutsdata() {
   isInfoLoading.value = true;
-  error.value = '';
   try {
     const response = await fetch(
       `${bffUrl}/api/regel/bekraftabeslut/${props.handlaggningId}`
@@ -77,7 +75,7 @@ async function fetchBeslutsdata() {
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     data.value = await response.json();
   } catch (err) {
-    error.value = 'Ett fel uppstod vid hämtning av beslutsdata';
+   error.value = 'Ett fel uppstod vid hämtning av beslutsdata';
   } finally {
     isInfoLoading.value = false;
   }
@@ -110,15 +108,20 @@ async function bekraftaBeslut() {
       { method: 'POST' }
     );
     if (!doneResponse.ok) throw new Error(`HTTP ${doneResponse.status}`);
-    bekraftad.value = true;
-    window.dispatchEvent(new CustomEvent('task-done', {
-      detail: { handlaggningId: props.handlaggningId },
-    }));
-  } catch (err) {
-    error.value = 'Ett fel uppstod vid bekräftelse av beslut';
-  } finally {
-    submitting.value = false;
-  }
+
+   bekraftad.value = true;
+  window.dispatchEvent(new CustomEvent('task-done', {
+    detail: {
+      handlaggningId: props.handlaggningId,
+      success: true,
+      message: 'Beslut bekräftat',
+    },
+  }));
+} catch (err) {
+  error.value = 'Ett fel uppstod vid bekräftelse av beslut';
+} finally {
+  submitting.value = false;
+}
 }
 
 function formatIsoDateToYmd(value?: string) {
@@ -169,9 +172,6 @@ onMounted(async () => {
         Vänligen vänta
       </f-loader>
       <div v-if="!isInfoLoading">
-        <p v-if="error" class="error">{{ error }}</p>
-        <p v-if="bekraftad" class="success">Beslut bekräftat!</p>
-
         <h2 v-if="data" style="margin: 0rem 0 0.75rem !important;">Resultat {{ data.ersattning[0]?.ersattningstyp }}</h2>
 
         <section v-if="data" class="kund-section">
@@ -231,11 +231,5 @@ onMounted(async () => {
   display: flex;
   gap: 0.75rem;
   margin-top: 0 !important;
-}
-.error {
-  color: red;
-}
-.success {
-  color: green;
 }
 </style>
