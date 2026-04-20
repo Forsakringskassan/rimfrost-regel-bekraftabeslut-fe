@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { FButton, FCard, FStaticField, FTooltip, FLoader } from '@fkui/vue';
+import { env } from '../config/env';
 
 interface Ersattning {
   ersattningId: string;
@@ -44,7 +45,7 @@ const descriptionLoading = ref(false);
 const isDescriptionFetched = ref(false);
 const uppgiftsbeskrivning = ref('');
 
-const bffUrl = import.meta.env.VITE_BFF_URL || 'http://localhost:9003';
+const bffUrl = env.bffUrl;
 
 const handleTooltipOpen = async () => {
   if (isDescriptionFetched.value || descriptionLoading.value) {

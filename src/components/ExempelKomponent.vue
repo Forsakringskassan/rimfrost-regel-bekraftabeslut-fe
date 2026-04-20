@@ -2,6 +2,7 @@
   import { computed, ref } from 'vue';
   import { useProductStore } from '../stores/ExempelStore';
   import { FButton } from '@fkui/vue';
+  import { env } from '../config/env';
 
   const productStore = useProductStore();
   const count = computed(() => productStore.count);
@@ -44,7 +45,7 @@
 
     try {
       // Use the BFF URL from environment variables, with a fallback to localhost
-      const bffUrl = import.meta.env.VITE_BFF_URL || 'http://localhost:9002';
+      const bffUrl = env.bffUrl;
       const response = await fetch(`${bffUrl}/api/cat-fact`);
       if (!response.ok) {
         throw new Error('Failed to fetch cat fact');

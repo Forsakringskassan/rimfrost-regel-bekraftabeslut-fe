@@ -17,3 +17,20 @@ Kör ```npm run dev``` för att testa komponenten under utveckling.
 
 ### Build och preview
 Kör ```npm run build``` och sedan ```npm run preview``` för att tillgängliggöra den exporterade komponenten för lokal testning
+
+## Environment Variables
+
+| Variable | Dev (`.env`) | Docker |
+|---|---|---|
+| BFF URL | `VITE_BFF_URL=http://localhost:9003` | `RUNTIME_BFF_URL=<url>` |
+
+In Docker the `RUNTIME_BFF_URL` variable is injected into `window._env_` at startup by `env.sh` and takes precedence over the build-time value.
+
+## Docker
+
+```bash
+docker build -t rimfrost-bekraftabeslut-fe .
+docker run -p 8080:8080 \
+  -e RUNTIME_BFF_URL=https://bekraftabeslut-bff.internal.example.com \
+  rimfrost-bekraftabeslut-fe
+```
