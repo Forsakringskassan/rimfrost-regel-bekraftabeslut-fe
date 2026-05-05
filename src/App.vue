@@ -1,12 +1,19 @@
 <script setup lang="ts">
   import BekraftaBeslutKomponent from './components/BekraftaBeslutKomponent.vue';
   import ToastContainer from './components/ToastContainer.vue'
+  import { env } from './config/env';
+
+  const props = defineProps<{
+    handlaggningId: string;
+  }>();
+
+  const handlaggningId = props.handlaggningId || env.devHandlaggningId;
 </script>
 
 <template>
   <ToastContainer />
   <div>
-    <BekraftaBeslutKomponent handlaggning-id="41a4bd73-e19d-47bc-ac98-7a05e212d7bc" />
+    <BekraftaBeslutKomponent :handlaggning-id="handlaggningId" />
   </div>
 </template>
 

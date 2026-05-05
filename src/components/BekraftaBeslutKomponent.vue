@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { FButton, FCard, FStaticField, FTooltip, FLoader } from '@fkui/vue';
+import { env } from '../config/env';
 
 interface Ersattning {
   ersattningId: string;
@@ -43,7 +44,7 @@ const descriptionLoading = ref(false);
 const isDescriptionFetched = ref(false);
 const uppgiftsbeskrivning = ref('');
 
-const bffUrl = import.meta.env.VITE_BFF_URL || 'http://localhost:9003';
+const bffUrl = env.bffUrl || 'http://localhost:9003';
 
 const handleTooltipOpen = async () => {
   if (isDescriptionFetched.value || descriptionLoading.value) {
@@ -52,7 +53,11 @@ const handleTooltipOpen = async () => {
   isDescriptionFetched.value = true;
   descriptionLoading.value = true;
   try {
-    const response = await fetch(`${bffUrl}/api/uppgiftsbeskrivning/BEKRAFTABESLUT`);
+    const response = await fetch(`${bffUrl}/api/uppgiftsbeskrivning`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ uppgiftstyp: 'BEKRAFTABESLUT' }),
+    });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const result = await response.json();
     if (result && typeof result.beskrivning === 'string') {
@@ -69,9 +74,11 @@ const handleTooltipOpen = async () => {
 async function fetchBeslutsdata() {
   isInfoLoading.value = true;
   try {
-    const response = await fetch(
-      `${bffUrl}/api/regel/bekraftabeslut/${props.handlaggningId}`
-    );
+    const response = await fetch(`${bffUrl}/api/regel/bekraftabeslut`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ handlaggningId: props.handlaggningId }),
+    });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     data.value = await response.json();
   } catch (err) {
@@ -90,23 +97,22 @@ async function bekraftaBeslut() {
   error.value = '';
   try {
     for (const item of data.value.ersattning) {
-      const response = await fetch(
-        `${bffUrl}/api/regel/bekraftabeslut/${props.handlaggningId}`,
-        {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ersattningId: item.ersattningId,
-            yrkandestatus: 'FASTSTALLT',
-          }),
-        }
-      );
+      const response = await fetch(`${bffUrl}/api/regel/bekraftabeslut`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          handlaggningId: props.handlaggningId,
+          ersattningId: item.ersattningId,
+          yrkandestatus: 'FASTSTALLT',
+        }),
+      });
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
     }
-    const doneResponse = await fetch(
-      `${bffUrl}/api/regel/bekraftabeslut/${props.handlaggningId}/done`,
-      { method: 'POST' }
-    );
+    const doneResponse = await fetch(`${bffUrl}/api/regel/bekraftabeslut/done`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ handlaggningId: props.handlaggningId }),
+    });
     if (!doneResponse.ok) throw new Error(`HTTP ${doneResponse.status}`);
 
    bekraftad.value = true;
