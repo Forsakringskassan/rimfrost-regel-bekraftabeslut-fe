@@ -28,21 +28,16 @@ This micro frontend is registered in the portal's `public/route-manifest.json`:
     "bekraftabeslut": {
       "scope": "bekraftaBeslutApp",
       "module": "BekraftaBeslut",
-      "devEntry": "http://localhost:3033/assets/remoteEntry.js",
-      "prodEntry": "https://your-prod-url.example.com/assets/remoteEntry.js"
+      "devEntry": "http://localhost:3033/mf-manifest.json",
+      "prodEntry": "https://your-prod-url.example.com/mf-manifest.json"
     }
   }
 }
 ```
 
-In **production**, updating this ConfigMap entry is enough to register or update the remote — no portal rebuild required. The portal reads the manifest at runtime and loads the remote dynamically via Module Federation.
+Updating this entry is the **only** change needed to register or update the remote — no portal rebuild required in any environment. The portal fetches the manifest at runtime and loads the remote dynamically via `@module-federation/vite`.
 
-In **development**, the portal also needs:
-- An entry in `devImporters` in `src/utils/loadRemoteModule.ts`
-- A type declaration in `src/federation.d.ts`
-- A dev server restart
-
-See the portal README for the full steps.
+In **development**, start this app's dev server and refresh the portal. No changes to `loadRemoteModule.ts`, `federation.d.ts`, or any other portal source file are needed.
 
 ## Environment Configuration
 
