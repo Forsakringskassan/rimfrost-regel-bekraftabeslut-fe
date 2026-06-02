@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { onMounted, onUnmounted, ref } from 'vue';
 import { FButton, FLoader, FStaticField, FTooltip } from '@fkui/vue';
 import { useBekraftaBeslutStore } from '../stores/BekraftaBeslutStore';
 import { fetchBeslutsdata } from '../utils/fetchBeslutsdata';
@@ -30,6 +30,10 @@ onMounted(async () => {
   isInfoLoading.value = true;
   await fetchBeslutsdata(handlaggningId);
   isInfoLoading.value = false;
+});
+
+onUnmounted(() => {
+  store.setBekraftad(false);
 });
 </script>
 
