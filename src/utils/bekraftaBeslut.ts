@@ -14,11 +14,10 @@ export async function bekraftaBeslut(handlaggningId: string): Promise<void> {
 
   try {
     for (const item of store.data.ersattning) {
-      const response = await fetch(`${env.bffUrl}/api/regel/bekraftabeslut`, {
+      const response = await fetch(`${env.bffUrl}/api/regel/bekraftabeslut/${handlaggningId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          handlaggningId,
           ersattningId: item.ersattningId,
           yrkandestatus: 'FASTSTALLT',
         }),
@@ -26,10 +25,8 @@ export async function bekraftaBeslut(handlaggningId: string): Promise<void> {
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
     }
 
-    const doneResponse = await fetch(`${env.bffUrl}/api/regel/bekraftabeslut/done`, {
+    const doneResponse = await fetch(`${env.bffUrl}/api/regel/bekraftabeslut/${handlaggningId}/done`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ handlaggningId }),
     });
     if (!doneResponse.ok) throw new Error(`HTTP ${doneResponse.status}`);
 
