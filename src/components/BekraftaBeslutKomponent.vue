@@ -1,241 +1,143 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import { FButton, FCard, FStaticField, FTooltip, FLoader } from '@fkui/vue';
-import { env } from '../config/env';
+import { onMounted, ref } from 'vue';
+import { FButton, FLoader, FStaticField, FTooltip } from '@fkui/vue';
+import { useBekraftaBeslutStore } from '../stores/BekraftaBeslutStore';
+import { fetchBeslutsdata } from '../utils/fetchBeslutsdata';
+import { bekraftaBeslut } from '../utils/bekraftaBeslut';
+import { fetchUppgiftsbeskrivning } from '../utils/fetchUppgiftsbeskrivning';
 
-interface Ersattning {
-  ersattningId: string;
-  ersattningstyp: string;
-  omfattningProcent: number;
-  belopp: number;
-  berakningsgrund: number;
-  beslutsutfall: 'JA' | 'NEJ' | 'FU';
-  avslagsanledning?: string;
-  from: string;
-  tom: string;
-}
-
-interface Kund {
-  efternamn: string;
-  fornamn: string;
-  kon: 'MAN' | 'KVINNA';
-  anstallning?: {
-    organisationsnamn: string;
-    arbetstidProcent: number;
-  };
-}
-
-interface GetDataResponse {
-  handlaggningId: string;
-  kund: Kund;
-  ersattning: Ersattning[];
-}
-
-const props = defineProps<{
+const { handlaggningId } = defineProps<{
   handlaggningId: string;
 }>();
 
+const store = useBekraftaBeslutStore();
 const isInfoLoading = ref(true);
-const submitting = ref(false);
-const data = ref<GetDataResponse | null>(null);
-const bekraftad = ref(false);
-const error = ref('');
-const descriptionLoading = ref(false);
 const isDescriptionFetched = ref(false);
-const uppgiftsbeskrivning = ref('');
 
-const bffUrl = env.bffUrl || 'http://localhost:9003';
-
-const handleTooltipOpen = async () => {
-  if (isDescriptionFetched.value || descriptionLoading.value) {
-    return;
-  }
-  isDescriptionFetched.value = true;
-  descriptionLoading.value = true;
-  try {
-    const response = await fetch(`${bffUrl}/api/uppgiftsbeskrivning`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ uppgiftstyp: 'BEKRAFTABESLUT' }),
-    });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const result = await response.json();
-    if (result && typeof result.beskrivning === 'string') {
-      uppgiftsbeskrivning.value = result.beskrivning;
-    }
-  } catch (err) {
-    console.error('Error fetching description:', err);
-    uppgiftsbeskrivning.value = '';
-  } finally {
-    descriptionLoading.value = false;
-  }
-};
-
-async function fetchBeslutsdata() {
-  isInfoLoading.value = true;
-  try {
-    const response = await fetch(`${bffUrl}/api/regel/bekraftabeslut`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ handlaggningId: props.handlaggningId }),
-    });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    data.value = await response.json();
-  } catch (err) {
-   error.value = 'Ett fel uppstod vid hämtning av beslutsdata';
-  } finally {
-    isInfoLoading.value = false;
+function handleTooltipOpen() {
+  if (!isDescriptionFetched.value && !store.descriptionLoading) {
+    isDescriptionFetched.value = true;
+    fetchUppgiftsbeskrivning();
   }
 }
 
-async function bekraftaBeslut() {
-  if (!data.value?.ersattning) {
-    error.value = 'Ingen ersättningsdata tillgänglig';
-    return;
-  }
-  submitting.value = true;
-  error.value = '';
-  try {
-    for (const item of data.value.ersattning) {
-      const response = await fetch(`${bffUrl}/api/regel/bekraftabeslut`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          handlaggningId: props.handlaggningId,
-          ersattningId: item.ersattningId,
-          yrkandestatus: 'FASTSTALLT',
-        }),
-      });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    }
-    const doneResponse = await fetch(`${bffUrl}/api/regel/bekraftabeslut/done`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ handlaggningId: props.handlaggningId }),
-    });
-    if (!doneResponse.ok) throw new Error(`HTTP ${doneResponse.status}`);
-
-   bekraftad.value = true;
-  window.dispatchEvent(new CustomEvent('task-done', {
-    detail: {
-      handlaggningId: props.handlaggningId,
-      success: true,
-      message: 'Beslut bekräftat',
-    },
-  }));
-} catch (err) {
-  error.value = 'Ett fel uppstod vid bekräftelse av beslut';
-} finally {
-  submitting.value = false;
-}
-}
-
-function formatIsoDateToYmd(value?: string) {
+function formatDate(value?: string) {
   if (!value) return '';
   return value.includes('T') ? value.split('T')[0] : value;
 }
 
 onMounted(async () => {
-  await fetchBeslutsdata();
+  isInfoLoading.value = true;
+  await fetchBeslutsdata(handlaggningId);
+  isInfoLoading.value = false;
 });
 </script>
 
 <template>
-  <div class="container">
-    <div>
+  <div>
+    <f-static-field>
+      <template #label>Bekräfta beslut</template>
+      <template #tooltip>
+        <f-tooltip
+          screen-reader-text="Läs mer om uppgiften bekräfta beslut"
+          header-tag="h2"
+          @toggle="handleTooltipOpen"
+        >
+          <template #header>Läs mer om uppgiften "Bekräfta beslut"</template>
+          <template #body>
+            <span v-if="store.descriptionLoading">
+              <f-loader
+                :show="store.descriptionLoading"
+                :delay="true"
+                style="margin-top: 2rem !important; min-height: 6.25rem;"
+              >
+                Vänligen vänta
+              </f-loader>
+            </span>
+            <span v-else-if="store.uppgiftsbeskrivning">
+              {{ store.uppgiftsbeskrivning }}
+            </span>
+            <span v-else>Ingen beskrivning tillgänglig.</span>
+          </template>
+        </f-tooltip>
+      </template>
+    </f-static-field>
+
+    <f-loader
+      :show="isInfoLoading"
+      :delay="true"
+      style="margin-top: 7rem !important; min-height: 6.25rem;"
+    >
+      Vänligen vänta
+    </f-loader>
+
+    <div v-if="!isInfoLoading && store.data" class="beslut-information">
       <f-static-field>
-        <template #label>
-          Mer information om att bekräfta beslut
-        </template>
-        <template #tooltip>
-          <f-tooltip
-            screen-reader-text="Läs mer om uppgiften bekräfta beslut"
-            header-tag="h2"
-            @toggle="handleTooltipOpen"
-          >
-            <template #header>
-              Läs mer om uppgiften "Bekräfta beslut"
-            </template>
-            <template #body>
-              <span v-if="descriptionLoading">
-                <f-loader :show="descriptionLoading" :delay="true" style="margin-top: 2rem !important; min-height: 6.25rem;">
-                  Vänligen vänta
-                </f-loader>
-              </span>
-              <span v-else-if="uppgiftsbeskrivning">
-                {{ uppgiftsbeskrivning }}
-              </span>
-              <span v-else>
-                Ingen beskrivning tillgänglig.
-              </span>
-            </template>
-          </f-tooltip>
+        <template #label><span>Kund</span></template>
+        <template #default>
+          <span>{{ store.data.kund.fornamn ?? "Jane" }} {{ store.data.kund.efternamn ?? "Doe" }}</span>
         </template>
       </f-static-field>
-    </div>
-    <div>
-      <f-loader :show="isInfoLoading" :delay="true" style="margin-top: 7rem !important; min-height: 6.25rem;">
-        Vänligen vänta
-      </f-loader>
-      <div v-if="!isInfoLoading">
-        <h2 v-if="data" style="margin: 0rem 0 0.75rem !important;">Resultat {{ data.ersattning[0]?.ersattningstyp }}</h2>
 
-        <section v-if="data" class="kund-section">
-          <f-static-field>
-            <template #label>
-              <span>Kund</span>
-            </template>
-            <template #default>
-              <span>{{ data.kund.fornamn }} {{ data.kund.efternamn }}</span>
-            </template>
-          </f-static-field>
+      <f-static-field>
+        <template #label><span>Organisation</span></template>
+        <template #default>
+          <span>{{ store.data.kund.anstallning?.organisationsnamn || '-' }}</span>
+        </template>
+      </f-static-field>
 
-          <f-static-field>
-            <template #label>
-              <span>Organisation</span>
-            </template>
-            <template #default>
-              <span>{{ data.kund.anstallning?.organisationsnamn || '-' }}</span>
-            </template>
-          </f-static-field>
-        </section>
-
-        <f-card v-if="data" v-for="ers in data.ersattning" :key="ers.ersattningId" style="max-width: 50% !important;">
+      <div
+        v-for="ers in store.data.ersattning"
+        :key="ers.ersattningId"
+        class="ersattning-rad"
+      >
+        <f-static-field>
+          <template #label><span>Beslutsutfall</span></template>
+          <template #default><span>{{ ers.beslutsutfall }}</span></template>
+        </f-static-field>
+        <f-static-field>
+          <template #label><span>Period</span></template>
           <template #default>
-            <p>Beslutsutfall: <span style="font-weight: 700">{{ ers.beslutsutfall }}</span></p>
-            <p>
-              Period:
-              <span style="font-weight: 700">{{ formatIsoDateToYmd(ers.from) }} - {{ formatIsoDateToYmd(ers.tom) }}</span>
-            </p>
-            <p>Belopp: <span style="font-weight: 700">{{ ers.belopp }} kr</span></p>
+            <span>{{ formatDate(ers.from) }} – {{ formatDate(ers.tom) }}</span>
           </template>
-
-          <template #footer>
-            <div class="actions">
-              <FButton @click="bekraftaBeslut" :disabled="submitting || bekraftad">
-                {{ submitting ? 'Bekräftar...' : 'Bekräfta beslut' }}
-              </FButton>
-            </div>
-          </template>
-        </f-card>
+        </f-static-field>
+        <f-static-field>
+          <template #label><span>Belopp</span></template>
+          <template #default><span>{{ ers.belopp }} kr</span></template>
+        </f-static-field>
       </div>
+
+      <p v-if="store.error" class="error-message">{{ store.error }}</p>
+
+      <f-button
+        :disabled="store.submitting || store.bekraftad"
+        @click="bekraftaBeslut(handlaggningId)"
+      >
+        {{ store.submitting ? 'Bekräftar...' : 'Bekräfta beslut' }}
+      </f-button>
     </div>
   </div>
 </template>
 
 <style scoped>
-.container {
-  padding: 1rem;
-}
-.kund-section {
+.beslut-information {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  margin-bottom: 1rem;
+  margin-top: 1rem;
 }
-.actions {
+
+.ersattning-rad {
   display: flex;
-  gap: 0.75rem;
-  margin-top: 0 !important;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 0.25rem;
+}
+
+.error-message {
+  color: red;
+  font-size: 0.875rem;
 }
 </style>
