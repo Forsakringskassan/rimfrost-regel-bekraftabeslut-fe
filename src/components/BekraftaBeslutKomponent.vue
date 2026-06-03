@@ -19,17 +19,14 @@ const selectedAvslutstyp = ref('');
 const selectedBeslutstyp = ref('');
 const selectedBeslutsutfall = ref('');
 
-function onAvslutstyp(value: unknown) {
-  console.log('[BekraftaBeslut] avslutstyp change, $event:', value);
-  selectedAvslutstyp.value = String(value);
+function onAvslutstyp(value: string) {
+  selectedAvslutstyp.value = value;
 }
-function onBeslutstyp(value: unknown) {
-  console.log('[BekraftaBeslut] beslutstyp change, $event:', value);
-  selectedBeslutstyp.value = String(value);
+function onBeslutstyp(value: string) {
+  selectedBeslutstyp.value = value;
 }
-function onBeslutsutfall(value: unknown) {
-  console.log('[BekraftaBeslut] beslutsutfall change, $event:', value);
-  selectedBeslutsutfall.value = String(value);
+function onBeslutsutfall(value: string) {
+  selectedBeslutsutfall.value = value;
 }
 
 const beslutComplete = computed(
