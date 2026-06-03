@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from 'vue';
-import { FButton, FLoader, FStaticField, FTooltip } from '@fkui/vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { FButton, FLoader, FSelectField, FStaticField, FTooltip } from '@fkui/vue';
 import { useBekraftaBeslutStore } from '../stores/BekraftaBeslutStore';
 import { fetchBeslutsdata } from '../utils/fetchBeslutsdata';
+import { fetchReferensdata } from '../utils/fetchReferensdata';
 import { bekraftaBeslut } from '../utils/bekraftaBeslut';
 import { fetchUppgiftsbeskrivning } from '../utils/fetchUppgiftsbeskrivning';
 
@@ -13,6 +14,31 @@ const { handlaggningId } = defineProps<{
 const store = useBekraftaBeslutStore();
 const isInfoLoading = ref(true);
 const isDescriptionFetched = ref(false);
+
+const selectedAvslutstyp = ref('');
+const selectedBeslutstyp = ref('');
+const selectedBeslutsutfall = ref('');
+
+function onAvslutstyp(value: unknown) {
+  console.log('[BekraftaBeslut] avslutstyp change, $event:', value);
+  selectedAvslutstyp.value = String(value);
+}
+function onBeslutstyp(value: unknown) {
+  console.log('[BekraftaBeslut] beslutstyp change, $event:', value);
+  selectedBeslutstyp.value = String(value);
+}
+function onBeslutsutfall(value: unknown) {
+  console.log('[BekraftaBeslut] beslutsutfall change, $event:', value);
+  selectedBeslutsutfall.value = String(value);
+}
+
+const beslutComplete = computed(
+  () => !!selectedAvslutstyp.value && !!selectedBeslutstyp.value && !!selectedBeslutsutfall.value,
+);
+
+const buttonDisabled = computed(
+  () => store.submitting || store.bekraftad || !beslutComplete.value,
+);
 
 function handleTooltipOpen() {
   if (!isDescriptionFetched.value && !store.descriptionLoading) {
@@ -28,7 +54,7 @@ function formatDate(value?: string) {
 
 onMounted(async () => {
   isInfoLoading.value = true;
-  await fetchBeslutsdata(handlaggningId);
+  await Promise.all([fetchBeslutsdata(handlaggningId), fetchReferensdata()]);
   isInfoLoading.value = false;
 });
 
@@ -111,11 +137,36 @@ onUnmounted(() => {
         </f-static-field>
       </div>
 
+      <f-select-field id="avslutstyp" :model-value="selectedAvslutstyp" @change="onAvslutstyp">
+        <template #label>Avslutstyp</template>
+        <option value="" disabled>Välj avslutstyp</option>
+        <option v-for="item in store.avslutstyper" :key="item.id" :value="item.id">
+          {{ item.namn }}
+        </option>
+      </f-select-field>
+
+      <f-select-field id="beslutstyp" :model-value="selectedBeslutstyp" @change="onBeslutstyp">
+        <template #label>Beslutstyp</template>
+        <option value="" disabled>Välj beslutstyp</option>
+        <option v-for="item in store.beslutstyper" :key="item.id" :value="item.id">
+          {{ item.namn }}
+        </option>
+      </f-select-field>
+
+      <f-select-field id="beslutsutfall" :model-value="selectedBeslutsutfall" @change="onBeslutsutfall">
+        <template #label>Beslutsutfall</template>
+        <option value="" disabled>Välj beslutsutfall</option>
+        <option v-for="item in store.beslutsutfallstyper" :key="item.id" :value="item.id">
+          {{ item.namn }}
+        </option>
+      </f-select-field>
+
       <p v-if="store.error" class="error-message">{{ store.error }}</p>
 
       <f-button
-        :disabled="store.submitting || store.bekraftad"
-        @click="bekraftaBeslut(handlaggningId)"
+        :key="String(buttonDisabled)"
+        :disabled="buttonDisabled"
+        @click="bekraftaBeslut(handlaggningId, { avslutstyp: selectedAvslutstyp, beslutstyp: selectedBeslutstyp, beslutsutfall: selectedBeslutsutfall })"
       >
         {{ store.submitting ? 'Bekräftar...' : 'Bekräfta beslut' }}
       </f-button>

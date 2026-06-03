@@ -1,7 +1,8 @@
 import { env } from '../config/env';
 import { useBekraftaBeslutStore } from '../stores/BekraftaBeslutStore';
+import type { BeslutSelection } from '../stores/BekraftaBeslutStore';
 
-export async function bekraftaBeslut(handlaggningId: string): Promise<void> {
+export async function bekraftaBeslut(handlaggningId: string, beslut: BeslutSelection): Promise<void> {
   const store = useBekraftaBeslutStore();
 
   if (!store.data?.ersattning) {
@@ -9,21 +10,28 @@ export async function bekraftaBeslut(handlaggningId: string): Promise<void> {
     return;
   }
 
+  const faststalltStatus = store.yrkandestatusar.find((s) => s.kod.toLowerCase() === 'faststallt');
+  if (!faststalltStatus) {
+    store.setError('Kunde inte hitta yrkandestatus "faststallt" i referensdata');
+    return;
+  }
+
   store.setSubmitting(true);
   store.setError('');
 
   try {
-    for (const item of store.data.ersattning) {
-      const response = await fetch(`${env.bffUrl}/api/regel/bekraftabeslut/${handlaggningId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ersattningId: item.ersattningId,
-          yrkandestatus: 'FASTSTALLT',
-        }),
-      });
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    }
+    const response = await fetch(`${env.bffUrl}/api/regel/bekraftabeslut/${handlaggningId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        ersattningar: store.data.ersattning.map((item) => ({
+          ersattning_id: item.ersattningId,
+          yrkandestatus: faststalltStatus.id,
+        })),
+        beslut,
+      }),
+    });
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
     const doneResponse = await fetch(`${env.bffUrl}/api/regel/bekraftabeslut/${handlaggningId}/done`, {
       method: 'POST',
