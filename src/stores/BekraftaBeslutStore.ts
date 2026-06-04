@@ -29,6 +29,18 @@ export interface BeslutsData {
   ersattning: Ersattning[];
 }
 
+export interface Referensdata {
+  id: string;
+  kod: string;
+  namn: string;
+}
+
+export interface BeslutSelection {
+  avslutstyp: string;
+  beslutstyp: string;
+  beslutsutfall: string;
+}
+
 export const useBekraftaBeslutStore = defineStore('bekraftaBeslut', () => {
   const data = ref<BeslutsData | null>(null);
   const bekraftad = ref(false);
@@ -36,6 +48,11 @@ export const useBekraftaBeslutStore = defineStore('bekraftaBeslut', () => {
   const error = ref('');
   const uppgiftsbeskrivning = ref('');
   const descriptionLoading = ref(false);
+
+  const avslutstyper = ref<Referensdata[]>([]);
+  const beslutstyper = ref<Referensdata[]>([]);
+  const beslutsutfallstyper = ref<Referensdata[]>([]);
+  const yrkandestatusar = ref<Referensdata[]>([]);
 
   function setData(value: BeslutsData | null) {
     data.value = value;
@@ -61,6 +78,18 @@ export const useBekraftaBeslutStore = defineStore('bekraftaBeslut', () => {
     descriptionLoading.value = value;
   }
 
+  function setReferensdata(
+    avslutstyperVal: Referensdata[],
+    beslutstyperVal: Referensdata[],
+    beslutsutfallstyperVal: Referensdata[],
+    yrkandestatusarVal: Referensdata[],
+  ) {
+    avslutstyper.value = avslutstyperVal;
+    beslutstyper.value = beslutstyperVal;
+    beslutsutfallstyper.value = beslutsutfallstyperVal;
+    yrkandestatusar.value = yrkandestatusarVal;
+  }
+
   return {
     data,
     bekraftad,
@@ -68,11 +97,16 @@ export const useBekraftaBeslutStore = defineStore('bekraftaBeslut', () => {
     error,
     uppgiftsbeskrivning,
     descriptionLoading,
+    avslutstyper,
+    beslutstyper,
+    beslutsutfallstyper,
+    yrkandestatusar,
     setData,
     setBekraftad,
     setSubmitting,
     setError,
     setUppgiftsbeskrivning,
     setDescriptionLoading,
+    setReferensdata,
   };
 });
