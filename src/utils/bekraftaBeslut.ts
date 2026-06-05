@@ -20,7 +20,7 @@ export async function bekraftaBeslut(handlaggningId: string, beslut: BeslutSelec
   store.setError('');
 
   try {
-    const response = await fetch(`${env.bffUrl}/api/regel/bekraftabeslut/${handlaggningId}`, {
+    const patchResponse = await fetch(`${env.bffUrl}/api/regel/bekraftabeslut/${handlaggningId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -31,8 +31,15 @@ export async function bekraftaBeslut(handlaggningId: string, beslut: BeslutSelec
         beslut,
       }),
     });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    if (!patchResponse.ok) throw new Error(`HTTP ${patchResponse.status}`);
+  } catch (err) {
+    console.error('Error patching ersattningar:', err);
+    store.setError('Ett fel uppstod vid uppdatering av ersättningsdata.');
+    store.setSubmitting(false);
+    return;
+  }
 
+  try {
     const doneResponse = await fetch(`${env.bffUrl}/api/regel/bekraftabeslut/${handlaggningId}/done`, {
       method: 'POST',
     });

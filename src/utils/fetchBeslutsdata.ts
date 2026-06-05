@@ -7,10 +7,17 @@ export async function fetchBeslutsdata(handlaggningId: string): Promise<void> {
     const response = await fetch(`${env.bffUrl}/api/regel/bekraftabeslut/${handlaggningId}`, {
       method: 'GET',
     });
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    if (!response.ok) {
+      if (response.status === 503) throw new Error('SERVICE_UNAVAILABLE');
+      throw new Error(`HTTP ${response.status}`);
+    }
     store.setData(await response.json());
   } catch (err) {
     console.error('Error fetching beslutsdata:', err);
-    store.setError('Ett fel uppstod vid hämtning av beslutsdata');
+    if (err instanceof Error && err.message === 'SERVICE_UNAVAILABLE') {
+      store.setError('Tjänsten är inte tillgänglig för tillfället. Försök igen senare.');
+    } else {
+      store.setError('Ett fel uppstod vid hämtning av beslutsdata');
+    }
   }
 }

@@ -84,6 +84,7 @@ onUnmounted(() => {
             <span v-else-if="store.uppgiftsbeskrivning">
               {{ store.uppgiftsbeskrivning }}
             </span>
+            <span v-else-if="store.descriptionError">Kunde inte hämta uppgiftsbeskrivningen.</span>
             <span v-else>Ingen beskrivning tillgänglig.</span>
           </template>
         </f-tooltip>
