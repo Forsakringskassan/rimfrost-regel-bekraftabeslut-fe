@@ -40,8 +40,10 @@ export async function bekraftaBeslut(handlaggningId: string, beslut: BeslutSelec
   }
 
   try {
-    const doneResponse = await fetch(`${env.bffUrl}/api/regel/bekraftabeslut/${handlaggningId}/done`, {
+    const doneResponse = await fetch(`${env.bffUrl}/api/regel/bekraftabeslut/done`, {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ handlaggningId }),
     });
     if (!doneResponse.ok) throw new Error(`HTTP ${doneResponse.status}`);
 

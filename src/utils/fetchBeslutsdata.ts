@@ -4,8 +4,10 @@ import { useBekraftaBeslutStore } from '../stores/BekraftaBeslutStore';
 export async function fetchBeslutsdata(handlaggningId: string): Promise<void> {
   const store = useBekraftaBeslutStore();
   try {
-    const response = await fetch(`${env.bffUrl}/api/regel/bekraftabeslut/${handlaggningId}`, {
-      method: 'GET',
+    const response = await fetch(`${env.bffUrl}/api/regel/bekraftabeslut`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ handlaggningId }),
     });
     if (!response.ok) {
       if (response.status === 503) throw new Error('SERVICE_UNAVAILABLE');
