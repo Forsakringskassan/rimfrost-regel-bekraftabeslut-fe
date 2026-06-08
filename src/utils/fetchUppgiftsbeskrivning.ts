@@ -5,7 +5,7 @@ export async function fetchUppgiftsbeskrivning(): Promise<void> {
   const store = useBekraftaBeslutStore();
   store.setDescriptionLoading(true);
   try {
-    const response = await fetch(`${env.bffUrl}/api/uppgiftsbeskrivning/BEKRAFTABESLUT`, {
+    const response = await fetch(`${env.bffUrl}/api/uppgiftsbeskrivning`, {
       method: 'GET',
     });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
