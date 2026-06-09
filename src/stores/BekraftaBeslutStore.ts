@@ -48,6 +48,7 @@ export const useBekraftaBeslutStore = defineStore('bekraftaBeslut', () => {
   const error = ref('');
   const uppgiftsbeskrivning = ref('');
   const descriptionLoading = ref(false);
+  const descriptionError = ref(false);
 
   const avslutstyper = ref<Referensdata[]>([]);
   const beslutstyper = ref<Referensdata[]>([]);
@@ -78,6 +79,10 @@ export const useBekraftaBeslutStore = defineStore('bekraftaBeslut', () => {
     descriptionLoading.value = value;
   }
 
+  function setDescriptionError(value: boolean) {
+    descriptionError.value = value;
+  }
+
   function setReferensdata(
     avslutstyperVal: Referensdata[],
     beslutstyperVal: Referensdata[],
@@ -97,6 +102,7 @@ export const useBekraftaBeslutStore = defineStore('bekraftaBeslut', () => {
     error,
     uppgiftsbeskrivning,
     descriptionLoading,
+    descriptionError,
     avslutstyper,
     beslutstyper,
     beslutsutfallstyper,
@@ -107,6 +113,7 @@ export const useBekraftaBeslutStore = defineStore('bekraftaBeslut', () => {
     setError,
     setUppgiftsbeskrivning,
     setDescriptionLoading,
+    setDescriptionError,
     setReferensdata,
   };
 });

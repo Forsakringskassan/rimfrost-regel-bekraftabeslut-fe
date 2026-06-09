@@ -16,6 +16,7 @@ export async function fetchUppgiftsbeskrivning(): Promise<void> {
   } catch (err) {
     console.error('Error fetching description:', err);
     store.setUppgiftsbeskrivning('');
+    store.setDescriptionError(true);
   } finally {
     store.setDescriptionLoading(false);
   }
