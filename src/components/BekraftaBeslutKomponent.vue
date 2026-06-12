@@ -33,8 +33,15 @@ const beslutComplete = computed(
   () => !!selectedAvslutstyp.value && !!selectedBeslutstyp.value && !!selectedBeslutsutfall.value,
 );
 
+const faststalltSaknas = computed(
+  () =>
+    !isInfoLoading.value &&
+    !store.error &&
+    !store.yrkandestatusar.some((s) => s.kod.toLowerCase() === 'faststallt'),
+);
+
 const buttonDisabled = computed(
-  () => store.submitting || store.bekraftad || !beslutComplete.value,
+  () => store.submitting || store.bekraftad || !beslutComplete.value || faststalltSaknas.value,
 );
 
 function handleTooltipOpen() {
@@ -135,31 +142,36 @@ onUnmounted(() => {
         </f-static-field>
       </div>
 
-      <f-select-field id="avslutstyp" :model-value="selectedAvslutstyp" @change="onAvslutstyp">
-        <template #label>Avslutstyp</template>
-        <option value="" disabled>Välj avslutstyp</option>
-        <option v-for="item in store.avslutstyper" :key="item.id" :value="item.id">
-          {{ item.namn }}
-        </option>
-      </f-select-field>
+      <template v-if="!faststalltSaknas">
+        <f-select-field id="avslutstyp" :model-value="selectedAvslutstyp" @change="onAvslutstyp">
+          <template #label>Avslutstyp</template>
+          <option value="" disabled>Välj avslutstyp</option>
+          <option v-for="item in store.avslutstyper" :key="item.id" :value="item.id">
+            {{ item.namn }}
+          </option>
+        </f-select-field>
 
-      <f-select-field id="beslutstyp" :model-value="selectedBeslutstyp" @change="onBeslutstyp">
-        <template #label>Beslutstyp</template>
-        <option value="" disabled>Välj beslutstyp</option>
-        <option v-for="item in store.beslutstyper" :key="item.id" :value="item.id">
-          {{ item.namn }}
-        </option>
-      </f-select-field>
+        <f-select-field id="beslutstyp" :model-value="selectedBeslutstyp" @change="onBeslutstyp">
+          <template #label>Beslutstyp</template>
+          <option value="" disabled>Välj beslutstyp</option>
+          <option v-for="item in store.beslutstyper" :key="item.id" :value="item.id">
+            {{ item.namn }}
+          </option>
+        </f-select-field>
 
-      <f-select-field id="beslutsutfall" :model-value="selectedBeslutsutfall" @change="onBeslutsutfall">
-        <template #label>Beslutsutfall</template>
-        <option value="" disabled>Välj beslutsutfall</option>
-        <option v-for="item in store.beslutsutfallstyper" :key="item.id" :value="item.id">
-          {{ item.namn }}
-        </option>
-      </f-select-field>
+        <f-select-field id="beslutsutfall" :model-value="selectedBeslutsutfall" @change="onBeslutsutfall">
+          <template #label>Beslutsutfall</template>
+          <option value="" disabled>Välj beslutsutfall</option>
+          <option v-for="item in store.beslutsutfallstyper" :key="item.id" :value="item.id">
+            {{ item.namn }}
+          </option>
+        </f-select-field>
+      </template>
 
       <p v-if="store.error" class="error-message">{{ store.error }}</p>
+      <p v-if="faststalltSaknas" class="error-message">
+        Det är inte möjligt att bekräfta beslut eftersom referensdata saknas.
+      </p>
 
       <f-button
         :key="String(buttonDisabled)"
