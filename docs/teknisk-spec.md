@@ -26,7 +26,7 @@ Ingen dedikerad OpenAPI-specifikation för BFF-kontraktet.
 | GET | `/api/regel/bekraftabeslut/avslutstyp` | Referensdata: avslutstyp |
 | GET | `/api/regel/bekraftabeslut/beslutstyp` | Referensdata: beslutstyp |
 | GET | `/api/regel/bekraftabeslut/beslutsutfallstyp` | Referensdata: beslutsutfallstyp |
-| GET | `/api/regel/bekraftabeslut/yrkandestatus` | Referensdata: anspråksstatus |
+| GET | `/api/regel/bekraftabeslut/yrkandestatus` | Referensdata: status |
 | GET | `/api/uppgiftsbeskrivning` | Hjälptext för uppgiftstypen |
 | PATCH | `/api/regel/bekraftabeslut/{handlaggningId}` | Uppdatera ersättningsstatus och beslut |
 | POST | `/api/regel/bekraftabeslut/done` | Slutföra uppgiften |

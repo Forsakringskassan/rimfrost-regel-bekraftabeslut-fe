@@ -26,14 +26,14 @@ beslutsbekräftelse-formulär i ett förmåns-/ersättningsärende. Handläggare
 - **BEKF-FR-01.2** Gränssnittet ska hämta referensdata för avslutstyp, beslutstyp och
   beslutsutfallstyp för att fylla klassificeringsvalen i formuläret.
 - **BEKF-FR-01.3** Beslutsbekräftelse ska endast vara möjlig om referensdata innehåller ett
-  fastställt anspråksstatusvärde; annars ska ett tydligt meddelande visas och formuläret döljas.
+  fastställt statusvärde; annars ska ett tydligt meddelande visas och formuläret döljas.
 - **BEKF-FR-01.4** Handläggaren ska kunna öppna en hjälptext som beskriver uppgiftstypen.
 
 ### BEKF-FR-02 — Bekräfta beslut
 
 - **BEKF-FR-02.1** Handläggaren ska ange avslutstyp, beslutstyp och beslutsutfall innan
   beslutet kan bekräftas.
-- **BEKF-FR-02.2** Vid bekräftelse ska samtliga ersättningsposters anspråksstatus uppdateras
+- **BEKF-FR-02.2** Vid bekräftelse ska samtliga ersättningsposters status uppdateras
   till fastställd status, tillsammans med de valda klassificeringsvärdena.
 - **BEKF-FR-02.3** Uppgiften ska markeras som slutförd endast om uppdateringen av
   ersättningsposternas status lyckades.
