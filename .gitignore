@@ -28,3 +28,7 @@ dist-ssr
 .__mf__temp*
 
 .env
+
+# Playwright
+test-results/
+playwright-report/
