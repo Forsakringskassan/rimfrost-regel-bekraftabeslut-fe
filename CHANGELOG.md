@@ -2,6 +2,12 @@
 
 Changelog of rimfrost-regel-bekraftabeslut-fe.
 
+## 0.0.2 (2026-09-14)
+
+### Bug Fixes
+
+-  correct case-mismatched module federation expose path ([5284b](https://github.com/Forsakringskassan/rimfrost-regel-bekraftabeslut-fe/commit/5284b6b504d64a3) LisaWedin_Ductus)  
+
 ## 0.0.1 (2026-09-14)
 
 ### Features
