@@ -1,177 +1,208 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import { FButton } from '@fkui/vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { FButton, FLoader, FSelectField, FStaticField, FTooltip } from '@fkui/vue';
+import { useBekraftaBeslutStore } from '../stores/BekraftaBeslutStore';
+import { fetchBeslutsdata } from '../utils/fetchBeslutsdata';
+import { fetchReferensdata } from '../utils/fetchReferensdata';
+import { bekraftaBeslut } from '../utils/bekraftaBeslut';
+import { fetchUppgiftsbeskrivning } from '../utils/fetchUppgiftsbeskrivning';
 
-interface Ersattning {
-  ersattning_id: string;
-  ersattningstyp: string;
-  omfattning_procent: number;
-  belopp: number;
-  berakningsgrund: number;
-  beslutsutfall: 'JA' | 'NEJ' | 'FU';
-  avslagsanledning?: string;
-  from: string;
-  tom: string;
-}
-
-interface Kund {
-  efternamn: string;
-  fornamn: string;
-  kon: 'MAN' | 'KVINNA';
-  anstallning?: {
-    organisationsnamn: string;
-    arbetstid_procent: number;
-    lon?: { lonesumma: number };
-  };
-}
-
-interface GetDataResponse {
-  handlaggning_id: string;
-  kund: Kund;
-  ersattning: Ersattning[];
-}
-
-const props = defineProps<{
+const { handlaggningId } = defineProps<{
   handlaggningId: string;
 }>();
 
-const loading = ref(false);
-const submitting = ref(false);
-const error = ref('');
-const data = ref<GetDataResponse | null>(null);
-const bekraftad = ref(false);
+const store = useBekraftaBeslutStore();
+const isInfoLoading = ref(true);
+const isDescriptionFetched = ref(false);
 
-const bffUrl = import.meta.env.VITE_BFF_URL || 'http://localhost:9003';
+const selectedAvslutstyp = ref('');
+const selectedBeslutstyp = ref('');
+const selectedBeslutsutfall = ref('');
 
-async function fetchBeslutsdata() {
-  loading.value = true;
-  error.value = '';
-  try {
-    const response = await fetch(
-      `${bffUrl}/api/regel/bekraftabeslut/${props.handlaggningId}`
-    );
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    data.value = await response.json();
-  } catch (err) {
-    error.value = 'Ett fel uppstod vid hämtning av beslutsdata';
-    console.error(err);
-  } finally {
-    loading.value = false;
+function onAvslutstyp(value: string) {
+  selectedAvslutstyp.value = value;
+}
+function onBeslutstyp(value: string) {
+  selectedBeslutstyp.value = value;
+}
+function onBeslutsutfall(value: string) {
+  selectedBeslutsutfall.value = value;
+}
+
+const beslutComplete = computed(
+  () => !!selectedAvslutstyp.value && !!selectedBeslutstyp.value && !!selectedBeslutsutfall.value,
+);
+
+const faststalltSaknas = computed(
+  () =>
+    !isInfoLoading.value &&
+    !store.error &&
+    !store.yrkandestatusar.some((s) => s.kod.toLowerCase() === 'faststallt'),
+);
+
+const buttonDisabled = computed(
+  () => store.submitting || store.bekraftad || !beslutComplete.value || faststalltSaknas.value,
+);
+
+function handleTooltipOpen() {
+  if (!isDescriptionFetched.value && !store.descriptionLoading) {
+    isDescriptionFetched.value = true;
+    fetchUppgiftsbeskrivning();
   }
 }
 
-async function patchErsattning(ersattningId: string, beslutsutfall: 'JA' | 'NEJ' | 'FU') {
-  try {
-    const response = await fetch(
-      `${bffUrl}/api/regel/bekraftabeslut/${props.handlaggningId}/ersattning/${ersattningId}`,
-      {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ersattning_id: ersattningId, beslutsutfall, signera: true })
-      }
-    );
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  } catch (err) {
-    error.value = 'Ett fel uppstod vid uppdatering av ersättning';
-    console.error(err);
-  }
+function formatDate(value?: string) {
+  if (!value) return '';
+  return value.includes('T') ? value.split('T')[0] : value;
 }
 
-async function bekraftaBeslut() {
-  submitting.value = true;
-  error.value = '';
-  try {
-    const response = await fetch(
-      `${bffUrl}/api/regel/bekraftabeslut/${props.handlaggningId}/done`,
-      { method: 'POST', headers: { 'Content-Type': 'application/json' } }
-    );
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    bekraftad.value = true;
-  } catch (err) {
-    error.value = 'Ett fel uppstod vid bekräftelse av beslut';
-    console.error(err);
-  } finally {
-    submitting.value = false;
-  }
-}
+onMounted(async () => {
+  isInfoLoading.value = true;
+  await Promise.all([fetchBeslutsdata(handlaggningId), fetchReferensdata()]);
+  isInfoLoading.value = false;
+});
 
-onMounted(() => {
-  fetchBeslutsdata();
+onUnmounted(() => {
+  store.setBekraftad(false);
 });
 </script>
 
 <template>
-  <div class="container">
-    <p v-if="loading">Laddar beslutsdata...</p>
-    <p v-if="error" class="error">{{ error }}</p>
-    <p v-if="bekraftad" class="success">Beslut bekräftat!</p>
+  <div>
+    <f-static-field>
+      <template #label>Bekräfta beslut</template>
+      <template #tooltip>
+        <f-tooltip
+          screen-reader-text="Läs mer om uppgiften bekräfta beslut"
+          header-tag="h2"
+          @toggle="handleTooltipOpen"
+        >
+          <template #header>Läs mer om uppgiften "Bekräfta beslut"</template>
+          <template #body>
+            <span v-if="store.descriptionLoading">
+              <f-loader
+                :show="store.descriptionLoading"
+                :delay="true"
+                style="margin-top: 2rem !important; min-height: 6.25rem;"
+              >
+                Vänligen vänta
+              </f-loader>
+            </span>
+            <span v-else-if="store.uppgiftsbeskrivning">
+              {{ store.uppgiftsbeskrivning }}
+            </span>
+            <span v-else-if="store.descriptionError">Kunde inte hämta uppgiftsbeskrivningen.</span>
+            <span v-else>Ingen beskrivning tillgänglig.</span>
+          </template>
+        </f-tooltip>
+      </template>
+    </f-static-field>
 
-    <div v-if="data">
-      <h2>{{ data.kund.fornamn }} {{ data.kund.efternamn }}</h2>
-      <p v-if="data.kund.anstallning">
-        Arbetsgivare: {{ data.kund.anstallning.organisationsnamn }} —
-        {{ data.kund.anstallning.arbetstid_procent }}%
+    <f-loader
+      :show="isInfoLoading"
+      :delay="true"
+      style="margin-top: 7rem !important; min-height: 6.25rem;"
+    >
+      Vänligen vänta
+    </f-loader>
+
+    <div v-if="!isInfoLoading && store.data" class="beslut-information">
+      <f-static-field>
+        <template #label><span>Kund</span></template>
+        <template #default>
+          <span>{{ store.data.kund.fornamn ?? "Jane" }} {{ store.data.kund.efternamn ?? "Doe" }}</span>
+        </template>
+      </f-static-field>
+
+      <f-static-field>
+        <template #label><span>Organisation</span></template>
+        <template #default>
+          <span>{{ store.data.kund.anstallning?.organisationsnamn || '-' }}</span>
+        </template>
+      </f-static-field>
+
+      <div
+        v-for="ers in store.data.ersattning"
+        :key="ers.ersattningId"
+        class="ersattning-rad"
+      >
+        <f-static-field>
+          <template #label><span>Beslutsutfall</span></template>
+          <template #default><span>{{ ers.beslutsutfall }}</span></template>
+        </f-static-field>
+        <f-static-field>
+          <template #label><span>Period</span></template>
+          <template #default>
+            <span>{{ formatDate(ers.from) }} – {{ formatDate(ers.tom) }}</span>
+          </template>
+        </f-static-field>
+        <f-static-field>
+          <template #label><span>Belopp</span></template>
+          <template #default><span>{{ ers.belopp }} kr</span></template>
+        </f-static-field>
+      </div>
+
+      <template v-if="!faststalltSaknas">
+        <f-select-field id="avslutstyp" :model-value="selectedAvslutstyp" @change="onAvslutstyp">
+          <template #label>Avslutstyp</template>
+          <option value="" disabled>Välj avslutstyp</option>
+          <option v-for="item in store.avslutstyper" :key="item.id" :value="item.id">
+            {{ item.namn }}
+          </option>
+        </f-select-field>
+
+        <f-select-field id="beslutstyp" :model-value="selectedBeslutstyp" @change="onBeslutstyp">
+          <template #label>Beslutstyp</template>
+          <option value="" disabled>Välj beslutstyp</option>
+          <option v-for="item in store.beslutstyper" :key="item.id" :value="item.id">
+            {{ item.namn }}
+          </option>
+        </f-select-field>
+
+        <f-select-field id="beslutsutfall" :model-value="selectedBeslutsutfall" @change="onBeslutsutfall">
+          <template #label>Beslutsutfall</template>
+          <option value="" disabled>Välj beslutsutfall</option>
+          <option v-for="item in store.beslutsutfallstyper" :key="item.id" :value="item.id">
+            {{ item.namn }}
+          </option>
+        </f-select-field>
+      </template>
+
+      <p v-if="store.error" class="error-message">{{ store.error }}</p>
+      <p v-if="faststalltSaknas" class="error-message">
+        Det är inte möjligt att bekräfta beslut eftersom referensdata saknas.
       </p>
 
-      <table class="ersattning-table">
-        <thead>
-          <tr>
-            <th>Typ</th>
-            <th>Period</th>
-            <th>Belopp</th>
-            <th>Beslutsutfall</th>
-            <th>Åtgärd</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="ers in data.ersattning" :key="ers.ersattning_id">
-            <td>{{ ers.ersattningstyp }}</td>
-            <td>{{ ers.from }} – {{ ers.tom }}</td>
-            <td>{{ ers.belopp }} kr</td>
-            <td>{{ ers.beslutsutfall }}</td>
-            <td>
-              <FButton @click="patchErsattning(ers.ersattning_id, 'JA')">
-                Godkänn
-              </FButton>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      <div class="actions">
-        <FButton @click="bekraftaBeslut" :disabled="submitting || bekraftad">
-          Bekräfta beslut
-        </FButton>
-      </div>
+      <f-button
+        :key="String(buttonDisabled)"
+        :disabled="buttonDisabled"
+        @click="bekraftaBeslut(handlaggningId, { avslutstyp: selectedAvslutstyp, beslutstyp: selectedBeslutstyp, beslutsutfall: selectedBeslutsutfall })"
+      >
+        {{ store.submitting ? 'Bekräftar...' : 'Bekräfta beslut' }}
+      </f-button>
     </div>
   </div>
 </template>
 
 <style scoped>
-.container {
+.beslut-information {
   display: flex;
   flex-direction: column;
   gap: 1rem;
-  padding: 1rem;
-}
-.actions {
-  display: flex;
-  gap: 0.75rem;
   margin-top: 1rem;
 }
-.error {
+
+.ersattning-rad {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 0.25rem;
+}
+
+.error-message {
   color: red;
-}
-.success {
-  color: green;
-}
-.ersattning-table {
-  width: 100%;
-  border-collapse: collapse;
-  th, td {
-    border: 1px solid #ccc;
-    padding: 0.5rem;
-    text-align: left;
-  }
+  font-size: 0.875rem;
 }
 </style>
