@@ -10,7 +10,7 @@ export default defineConfig({
       name: "bekraftaBeslutApp",
       filename: "remoteEntry.js",
       exposes: {
-        "./BekraftaBeslut": "./src/components/BekraftaBeslutkomponent.vue",
+        "./BekraftaBeslut": "./src/components/BekraftaBeslutKomponent.vue",
       },
       shared: {
         vue: { singleton: true, requiredVersion: "^3.5.24" },
