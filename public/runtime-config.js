@@ -1,1 +1,1 @@
-window._env_ = {};
+window.__BEKRAFTABESLUT_FE_ENV__ = {};
