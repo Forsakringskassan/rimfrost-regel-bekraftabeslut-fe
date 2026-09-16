@@ -2,6 +2,12 @@
 
 Changelog of rimfrost-regel-bekraftabeslut-fe.
 
+## 0.0.3 (2026-09-15)
+
+### Bug Fixes
+
+-  namespace the runtime-config global per app ([cc9e4](https://github.com/Forsakringskassan/rimfrost-regel-bekraftabeslut-fe/commit/cc9e4bb2ddba632) LisaWedin_Ductus)  
+
 ## 0.0.2 (2026-09-14)
 
 ### Bug Fixes
