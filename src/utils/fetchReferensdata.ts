@@ -1,4 +1,4 @@
-import { env } from '../config/env';
+import { env, ensureEnvLoaded } from '../config/env';
 import { useBekraftaBeslutStore } from '../stores/BekraftaBeslutStore';
 import type { Referensdata } from '../stores/BekraftaBeslutStore';
 
@@ -14,6 +14,7 @@ async function fetchList(path: string): Promise<Referensdata[]> {
 export async function fetchReferensdata(): Promise<void> {
   const store = useBekraftaBeslutStore();
   try {
+    await ensureEnvLoaded();
     const [avslutstyper, beslutstyper, beslutsutfallstyper, yrkandestatusar] = await Promise.all([
       fetchList('avslutstyp'),
       fetchList('beslutstyp'),

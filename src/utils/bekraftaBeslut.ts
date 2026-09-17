@@ -1,4 +1,4 @@
-import { env } from '../config/env';
+import { env, ensureEnvLoaded } from '../config/env';
 import { useBekraftaBeslutStore } from '../stores/BekraftaBeslutStore';
 import type { BeslutSelection } from '../stores/BekraftaBeslutStore';
 
@@ -20,6 +20,7 @@ export async function bekraftaBeslut(handlaggningId: string, beslut: BeslutSelec
   store.setError('');
 
   try {
+    await ensureEnvLoaded();
     const patchResponse = await fetch(`${env.bffUrl}/api/regel/bekraftabeslut/${handlaggningId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },

@@ -1,10 +1,11 @@
-import { env } from '../config/env';
+import { env, ensureEnvLoaded } from '../config/env';
 import { useBekraftaBeslutStore } from '../stores/BekraftaBeslutStore';
 
 export async function fetchUppgiftsbeskrivning(): Promise<void> {
   const store = useBekraftaBeslutStore();
   store.setDescriptionLoading(true);
   try {
+    await ensureEnvLoaded();
     const response = await fetch(`${env.bffUrl}/api/uppgiftsbeskrivning`, {
       method: 'GET',
     });

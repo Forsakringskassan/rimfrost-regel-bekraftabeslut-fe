@@ -1,4 +1,4 @@
-import { env } from '../config/env';
+import { env, ensureEnvLoaded } from '../config/env';
 import { useBekraftaBeslutStore } from '../stores/BekraftaBeslutStore';
 
 class ServiceUnavailableError extends Error {}
@@ -6,6 +6,7 @@ class ServiceUnavailableError extends Error {}
 export async function fetchBeslutsdata(handlaggningId: string): Promise<void> {
   const store = useBekraftaBeslutStore();
   try {
+    await ensureEnvLoaded();
     const response = await fetch(
       `${env.bffUrl}/api/regel/bekraftabeslut/handlaggning/${handlaggningId}`,
     );
