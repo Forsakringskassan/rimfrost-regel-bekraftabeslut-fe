@@ -2,6 +2,20 @@
 
 Changelog of rimfrost-regel-bekraftabeslut-fe.
 
+## 0.0.4 (2026-09-17)
+
+### Bug Fixes
+
+-  self-load runtime-config.js when running as a Module Federation remote ([5b34c](https://github.com/Forsakringskassan/rimfrost-regel-bekraftabeslut-fe/commit/5b34c6e8b46a99d) LisaWedin_Ductus)  
+
+### Other changes
+
+**Merge branch 'main' of https://github.com/Forsakringskassan/rimfrost-regel-bekraftabeslut-fe**
+
+
+[02e6b](https://github.com/Forsakringskassan/rimfrost-regel-bekraftabeslut-fe/commit/02e6be768323ae7) LisaWedin_Ductus *2026-09-17 06:23:26*
+
+
 ## 0.0.3 (2026-09-15)
 
 ### Bug Fixes
