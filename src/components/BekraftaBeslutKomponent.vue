@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { FButton, FLoader, FSelectField, FStaticField, FTooltip } from '@fkui/vue';
-import { useBekraftaBeslutStore } from '../stores/BekraftaBeslutStore';
+import { hittaFaststalltStatus, useBekraftaBeslutStore } from '../stores/BekraftaBeslutStore';
 import { fetchBeslutsdata } from '../utils/fetchBeslutsdata';
 import { fetchReferensdata } from '../utils/fetchReferensdata';
 import { bekraftaBeslut } from '../utils/bekraftaBeslut';
@@ -37,7 +37,7 @@ const faststalltSaknas = computed(
   () =>
     !isInfoLoading.value &&
     !store.error &&
-    !store.yrkandestatusar.some((s) => s.kod.toLowerCase() === 'faststallt'),
+    !hittaFaststalltStatus(store.yrkandestatusar),
 );
 
 const buttonDisabled = computed(
@@ -123,12 +123,12 @@ onUnmounted(() => {
 
       <div
         v-for="ers in store.data.ersattning"
-        :key="ers.ersattningId"
+        :key="ers.ersattning_id"
         class="ersattning-rad"
       >
         <f-static-field>
           <template #label><span>Beslutsutfall</span></template>
-          <template #default><span>{{ ers.beslutsutfall }}</span></template>
+          <template #default><span>{{ ers.beslutsutfall ?? '-' }}</span></template>
         </f-static-field>
         <f-static-field>
           <template #label><span>Period</span></template>

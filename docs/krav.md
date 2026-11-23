@@ -59,7 +59,7 @@ beslutsbekräftelse-formulär i ett förmåns-/ersättningsärende. Handläggare
 
 | API | Målgrupp | Specifikationsartefakt |
 |---|---|---|
-| Bekräfta Beslut BFF REST-API | Denna mikrofrontend | Ingen dedikerad OpenAPI-specifikation för BFF-kontraktet |
+| Bekräfta Beslut BFF REST-API | Denna mikrofrontend | [rimfrost-regel-bekraftabeslut-bff-openapi](https://github.com/Forsakringskassan/rimfrost-regel-bekraftabeslut-bff-openapi) (`openapi.yaml`) |
 
 ---
 
@@ -67,3 +67,9 @@ beslutsbekräftelse-formulär i ett förmåns-/ersättningsärende. Handläggare
 
 Mikrofrontenden talar uteslutande med sin dedikerade BFF. Den har ingen kännedom om
 bakomliggande ärende- eller referensdatatjänster — allt sådant döljs av BFF:n.
+
+Kontraktet mot BFF:n definieras av `openapi.yaml` i
+[rimfrost-regel-bekraftabeslut-bff-openapi](https://github.com/Forsakringskassan/rimfrost-regel-bekraftabeslut-bff-openapi).
+Mikrofrontendens typer (`src/stores/BekraftaBeslutStore.ts`) speglar specen en-till-en,
+inklusive snake_case i fältnamnen (t.ex. `handlaggning_id`, `ersattning_id`), och svaret
+används utan mappning.

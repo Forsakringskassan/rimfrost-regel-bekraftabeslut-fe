@@ -13,16 +13,18 @@ src/
 ├── App.vue                        # Rotkomponent, tar emot handlaggningId som prop
 ├── components/BekraftaBeslutKomponent.vue  # Formulär: klassificering + bekräftelse
 ├── stores/BekraftaBeslutStore.ts   # Beslutsunderlag, referensdata, status, fel
-└── (typer definierade i store-filen)
+└── (typer definierade i store-filen, speglar BFF-specen)
 ```
 
 ## API-specifikationer
 
-Ingen dedikerad OpenAPI-specifikation för BFF-kontraktet.
+BFF-kontraktet specificeras i `openapi.yaml` i
+[rimfrost-regel-bekraftabeslut-bff-openapi](https://github.com/Forsakringskassan/rimfrost-regel-bekraftabeslut-bff-openapi).
+Typerna i `BekraftaBeslutStore.ts` är handskrivna men följer specen fält för fält (snake_case).
 
 | Metod | Sökväg | Beskrivning |
 |---|---|---|
-| POST | `/api/regel/bekraftabeslut` | Hämta beslutsunderlag |
+| GET | `/api/regel/bekraftabeslut/handlaggning/{handlaggningId}` | Hämta beslutsunderlag |
 | GET | `/api/regel/bekraftabeslut/avslutstyp` | Referensdata: avslutstyp |
 | GET | `/api/regel/bekraftabeslut/beslutstyp` | Referensdata: beslutstyp |
 | GET | `/api/regel/bekraftabeslut/beslutsutfallstyp` | Referensdata: beslutsutfallstyp |
@@ -53,4 +55,5 @@ Ingen egen hälsokontroll — statisk frontend, hälsa avgörs av webbservern so
 | Uppdatering av ersättningsstatus och slutförande är två separata anrop utan kompensation vid delvist fel | Utforma en återförsöks- eller kompensationsstrategi |
 | Kund- och organisationsnamn faller tillbaka på platshållarvärden om data saknas, istället för att visa ett tydligt "saknas"-läge | Ersätt fallback med ett explicit felläge |
 | Ingen automatiserad testtäckning finns i repot | Inför enhetstester |
+| Typerna för BFF-kontraktet är handskrivna, så en ändring i specen märks inte vid bygget | Generera typerna från BFF-specen (se FKPOC-1321) |
 | Ospårat toast-notifieringsflöde finns i koden men är inte kopplat till bekräftelseflödet | Klargör om det ska kopplas in eller tas bort |

@@ -1,4 +1,6 @@
+import type { Page } from "@playwright/test";
 import {
+  defaultBekraftaStatus,
   expect,
   gotoApp,
   mockBeslutsData,
@@ -11,6 +13,12 @@ import {
 // preview server (no Module Federation host) using VITE_DEV_HANDLAGGNING_ID as
 // the fallback handlaggningId. Covers all of the app's own BFF endpoints:
 // GET handlaggning/{id}, 4x referensdata GETs, PATCH, POST done, GET uppgiftsbeskrivning.
+async function valjAllaBeslut(page: Page) {
+  await page.locator("#avslutstyp").selectOption({ label: "Automatiskt avslut" });
+  await page.locator("#beslutstyp").selectOption({ label: "Bifall" });
+  await page.locator("#beslutsutfall").selectOption({ label: "Ja" });
+}
+
 test.describe("BekraftaBeslutKomponent", () => {
   test("laddar och visar beslutsdata", async ({ page }) => {
     await mockBffApis(page);
@@ -19,6 +27,7 @@ test.describe("BekraftaBeslutKomponent", () => {
     await expect(page.getByText("Lisa Tass")).toBeVisible();
     await expect(page.getByText("Region Dalarna")).toBeVisible();
     await expect(page.getByText("40000 kr")).toBeVisible();
+    await expect(page.getByText("20000 kr")).toBeVisible();
     await expect(page.locator(".error-message")).not.toBeVisible();
   });
 
@@ -38,9 +47,7 @@ test.describe("BekraftaBeslutKomponent", () => {
     await mockBffApis(page);
     await gotoApp(page);
 
-    await page.locator("#avslutstyp").selectOption({ label: "Automatiskt avslut" });
-    await page.locator("#beslutstyp").selectOption({ label: "Bifall" });
-    await page.locator("#beslutsutfall").selectOption({ label: "Ja" });
+    await valjAllaBeslut(page);
 
     // The button is re-keyed on buttonDisabled (:key="String(buttonDisabled)"),
     // which forces Vue to swap the DOM node when it flips — waiting for the
@@ -50,7 +57,7 @@ test.describe("BekraftaBeslutKomponent", () => {
 
     const patchRequest = page.waitForRequest(
       (req) =>
-        req.url().includes(`/api/regel/bekraftabeslut/${mockBeslutsData.handlaggningId}`) &&
+        req.url().includes(`/api/regel/bekraftabeslut/${mockBeslutsData.handlaggning_id}`) &&
         req.method() === "PATCH",
     );
     const doneRequest = page.waitForRequest(
@@ -60,15 +67,26 @@ test.describe("BekraftaBeslutKomponent", () => {
     const patch = await patchRequest;
     const done = await doneRequest;
 
+    // Every ersättning from the GET response must be sent with its own
+    // ersattning_id — a missing id is dropped by JSON.stringify and the BFF
+    // rejects the request (FKPOC-1488).
     const patchBody = patch.postDataJSON();
-    expect(patchBody.ersattningar).toEqual([
-      {
-        ersattning_id: mockBeslutsData.ersattning[0].ersattningId,
+    expect(patchBody.ersattningar).toEqual(
+      mockBeslutsData.ersattning.map((e) => ({
+        ersattning_id: e.ersattning_id,
         yrkandestatus: mockReferensdata.yrkandestatus[0].id,
-      },
-    ]);
+      })),
+    );
+    for (const ersattning of patchBody.ersattningar) {
+      expect(ersattning.ersattning_id).toEqual(expect.any(String));
+    }
+    expect(patchBody.beslut).toEqual({
+      avslutstyp: mockReferensdata.avslutstyp[0].id,
+      beslutstyp: mockReferensdata.beslutstyp[0].id,
+      beslutsutfall: mockReferensdata.beslutsutfallstyp[0].id,
+    });
     const doneBody = done.postDataJSON();
-    expect(doneBody.handlaggningId).toBe(mockBeslutsData.handlaggningId);
+    expect(doneBody.handlaggningId).toBe(mockBeslutsData.handlaggning_id);
   });
 
   test("knappen är inaktiverad tills alla tre val är gjorda", async ({ page }) => {
@@ -102,6 +120,56 @@ test.describe("BekraftaBeslutKomponent", () => {
       page.getByRole("button", { name: "Bekräfta beslut", exact: true }),
     ).toBeDisabled();
   });
+
+  test("kraschar inte när referensdata saknar kod", async ({ page }) => {
+    const pageErrors: Error[] = [];
+    page.on("pageerror", (err) => pageErrors.push(err));
+    await mockBffApis(page, undefined, {
+      ...mockReferensdata,
+      yrkandestatus: [{ id: "status-utan-kod", namn: "Utan kod" }],
+    });
+    await gotoApp(page);
+
+    await expect(page.getByText("Lisa Tass")).toBeVisible();
+    await expect(
+      page.getByText(
+        "Det är inte möjligt att bekräfta beslut eftersom referensdata saknas.",
+      ),
+    ).toBeVisible();
+    expect(pageErrors).toEqual([]);
+  });
+
+  test("visar inte referensdata utan id eller namn", async ({ page }) => {
+    await mockBffApis(page, undefined, {
+      ...mockReferensdata,
+      avslutstyp: [
+        ...mockReferensdata.avslutstyp,
+        { kod: "UTAN_ID", namn: "Saknar id" },
+        { id: "avslut-utan-namn", kod: "UTAN_NAMN" },
+      ],
+    });
+    await gotoApp(page);
+
+    // The disabled "Välj avslutstyp" placeholder plus the one complete item.
+    await expect(page.locator("#avslutstyp option")).toHaveCount(2);
+    await expect(page.locator("#avslutstyp option", { hasText: "Saknar id" })).toHaveCount(0);
+  });
+
+  for (const steg of ["patch", "done"] as const) {
+    test(`visar att tjänsten inte är tillgänglig vid 503 från ${steg}`, async ({ page }) => {
+      await mockBffApis(page, undefined, undefined, { ...defaultBekraftaStatus, [steg]: 503 });
+      await gotoApp(page);
+
+      await valjAllaBeslut(page);
+      const button = page.getByRole("button", { name: "Bekräfta beslut", exact: true });
+      await expect(button).toBeEnabled();
+      await button.click();
+
+      await expect(
+        page.getByText("Tjänsten är inte tillgänglig för tillfället. Försök igen senare."),
+      ).toBeVisible();
+    });
+  }
 
   // KNOWN BUG (found via this test, not fixed here — flagged for the team):
   // the component's error <p> lives inside `v-if="!isInfoLoading && store.data"`.

@@ -1,14 +1,15 @@
 import { env, ensureEnvLoaded } from '../config/env';
 import { useBekraftaBeslutStore } from '../stores/BekraftaBeslutStore';
+import { checkResponse, ServiceUnavailableError } from './ServiceUnavailableError';
 import type { Referensdata } from '../stores/BekraftaBeslutStore';
-
-class ServiceUnavailableError extends Error {}
 
 async function fetchList(path: string): Promise<Referensdata[]> {
   const response = await fetch(`${env.bffUrl}/api/regel/bekraftabeslut/${path}`);
-  if (response.status === 503) throw new ServiceUnavailableError();
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  return response.json();
+  checkResponse(response);
+  const items: Referensdata[] = await response.json();
+  // Alla fält är valfria i BFF-specen. Ett alternativ utan id kan inte skickas i PATCH
+  // (webbläsaren skulle annars använda texten som värde) och ett utan namn kan inte visas.
+  return items.filter((item) => !!item.id && !!item.namn);
 }
 
 export async function fetchReferensdata(): Promise<void> {

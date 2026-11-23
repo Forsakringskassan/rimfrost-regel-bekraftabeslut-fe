@@ -1,38 +1,46 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 
-export interface Ersattning {
-  ersattningId: string;
-  ersattningstyp: string;
-  omfattningProcent: number;
-  belopp: number;
-  berakningsgrund: number;
-  beslutsutfall: 'JA' | 'NEJ' | 'FU';
-  avslagsanledning?: string;
-  from: string;
-  tom: string;
+// Typerna speglar rimfrost-regel-bekraftabeslut-bff-openapi (openapi.yaml) en-till-en,
+// inklusive snake_case i fältnamnen — BFF-svaret läggs i storen utan mappning.
+
+export interface Anstallning {
+  organisationsnummer?: string;
+  organisationsnamn?: string;
+  arbetstid_procent?: number;
+  anstallningsdag?: string;
+  sista_anstallningsdag?: string | null;
 }
 
 export interface Kund {
   fornamn: string;
   efternamn: string;
   kon: 'MAN' | 'KVINNA';
-  anstallning?: {
-    organisationsnamn: string;
-    arbetstidProcent: number;
-  };
+  anstallning: Anstallning;
 }
 
-export interface BeslutsData {
-  handlaggningId: string;
+export interface Ersattning {
+  ersattning_id: string;
+  ersattningstyp: string;
+  omfattning_procent: number;
+  belopp: number;
+  berakningsgrund: number;
+  beslutsutfall?: 'JA' | 'NEJ' | 'FU';
+  avslagsanledning?: string | null;
+  from: string;
+  tom: string;
+}
+
+export interface GetDataResponse {
+  handlaggning_id: string;
   kund: Kund;
   ersattning: Ersattning[];
 }
 
 export interface Referensdata {
-  id: string;
-  kod: string;
-  namn: string;
+  id?: string;
+  kod?: string;
+  namn?: string;
 }
 
 export interface BeslutSelection {
@@ -41,8 +49,17 @@ export interface BeslutSelection {
   beslutsutfall: string;
 }
 
+/** Yrkandestatusen "fastställt" (med id, så att den kan skickas i PATCH), eller undefined. */
+export function hittaFaststalltStatus(
+  yrkandestatusar: Referensdata[],
+): (Referensdata & { id: string }) | undefined {
+  return yrkandestatusar.find(
+    (s): s is Referensdata & { id: string } => !!s.id && s.kod?.toLowerCase() === 'faststallt',
+  );
+}
+
 export const useBekraftaBeslutStore = defineStore('bekraftaBeslut', () => {
-  const data = ref<BeslutsData | null>(null);
+  const data = ref<GetDataResponse | null>(null);
   const bekraftad = ref(false);
   const submitting = ref(false);
   const error = ref('');
@@ -55,7 +72,7 @@ export const useBekraftaBeslutStore = defineStore('bekraftaBeslut', () => {
   const beslutsutfallstyper = ref<Referensdata[]>([]);
   const yrkandestatusar = ref<Referensdata[]>([]);
 
-  function setData(value: BeslutsData | null) {
+  function setData(value: GetDataResponse | null) {
     data.value = value;
   }
 
