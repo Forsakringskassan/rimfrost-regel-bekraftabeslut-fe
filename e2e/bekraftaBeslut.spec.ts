@@ -247,6 +247,16 @@ test.describe("BekraftaBeslutKomponent", () => {
       await expect(page.getByText("Lisa Tass")).not.toBeVisible();
     });
 
+    test("visar begripligt fel när referensdata svarar 401", async ({ page }) => {
+      await mockBffApis(page);
+      await page.route("**/api/regel/bekraftabeslut/yrkandestatus", async (route) => {
+        await route.fulfill({ status: 401 });
+      });
+      await gotoApp(page);
+
+      await expect(page.getByText(SAKNAR_BEHORIGHET)).toBeVisible();
+    });
+
     test("visar begripligt fel när bekräftelsen svarar 401", async ({ page }) => {
       await mockBffApis(page, undefined, undefined, { ...defaultBekraftaStatus, patch: 401 });
       await gotoApp(page);

@@ -70,6 +70,9 @@ function formatDate(value?: string) {
 
 onMounted(async () => {
   isInfoLoading.value = true;
+  // Storen delas med portalen och överlever ommontering: ett fel från en tidigare visning
+  // (t.ex. saknad token före ny inloggning) ska inte ligga kvar.
+  store.setError('');
   await Promise.all([fetchBeslutsdata(handlaggningId), fetchReferensdata()]);
   isInfoLoading.value = false;
 });
