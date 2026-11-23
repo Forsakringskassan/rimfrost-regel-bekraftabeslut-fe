@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { FButton, FLoader, FSelectField, FStaticField, FTooltip } from '@fkui/vue';
 import { hittaFaststalltStatus, useBekraftaBeslutStore } from '../stores/BekraftaBeslutStore';
 import { fetchBeslutsdata } from '../utils/fetchBeslutsdata';
@@ -7,11 +7,23 @@ import { fetchReferensdata } from '../utils/fetchReferensdata';
 import { bekraftaBeslut } from '../utils/bekraftaBeslut';
 import { fetchUppgiftsbeskrivning } from '../utils/fetchUppgiftsbeskrivning';
 
-const { handlaggningId } = defineProps<{
+// `authorization` är den inloggade handläggarens token från portalen (PORT-FR-03.6/03.7):
+// hela Authorization-headervärdet, som skickas oförändrat på alla BFF-anrop. Deklarerad
+// direkt på den exponerade komponenten — portalen skickar den bara till remotes som
+// deklarerar den.
+const { handlaggningId, authorization } = defineProps<{
   handlaggningId: string;
+  authorization?: string | null;
 }>();
 
 const store = useBekraftaBeslutStore();
+// Sätts innan onMounted hämtar data. Portalen monterar om komponenten när token byts;
+// watch håller storen i takt om den inte skulle göra det.
+watch(
+  () => authorization,
+  (value) => store.setAuthorization(value ?? null),
+  { immediate: true },
+);
 const isInfoLoading = ref(true);
 const isDescriptionFetched = ref(false);
 
@@ -64,6 +76,8 @@ onMounted(async () => {
 
 onUnmounted(() => {
   store.setBekraftad(false);
+  // Pinia delas med portalen, så token ska inte ligga kvar i storen när remoten är borta.
+  store.setAuthorization(null);
 });
 </script>
 
@@ -105,6 +119,8 @@ onUnmounted(() => {
     >
       Vänligen vänta
     </f-loader>
+
+    <p v-if="!isInfoLoading && !store.data && store.error" class="error-message">{{ store.error }}</p>
 
     <div v-if="!isInfoLoading && store.data" class="beslut-information">
       <f-static-field>

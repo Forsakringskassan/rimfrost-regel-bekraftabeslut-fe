@@ -66,6 +66,8 @@ export const useBekraftaBeslutStore = defineStore('bekraftaBeslut', () => {
   const uppgiftsbeskrivning = ref('');
   const descriptionLoading = ref(false);
   const descriptionError = ref(false);
+  // Hela Authorization-headervärdet från portalen (PORT-FR-03.6), eller null.
+  const authorization = ref<string | null>(null);
 
   const avslutstyper = ref<Referensdata[]>([]);
   const beslutstyper = ref<Referensdata[]>([]);
@@ -100,6 +102,10 @@ export const useBekraftaBeslutStore = defineStore('bekraftaBeslut', () => {
     descriptionError.value = value;
   }
 
+  function setAuthorization(value: string | null) {
+    authorization.value = value;
+  }
+
   function setReferensdata(
     avslutstyperVal: Referensdata[],
     beslutstyperVal: Referensdata[],
@@ -120,6 +126,7 @@ export const useBekraftaBeslutStore = defineStore('bekraftaBeslut', () => {
     uppgiftsbeskrivning,
     descriptionLoading,
     descriptionError,
+    authorization,
     avslutstyper,
     beslutstyper,
     beslutsutfallstyper,
@@ -131,6 +138,7 @@ export const useBekraftaBeslutStore = defineStore('bekraftaBeslut', () => {
     setUppgiftsbeskrivning,
     setDescriptionLoading,
     setDescriptionError,
+    setAuthorization,
     setReferensdata,
   };
 });

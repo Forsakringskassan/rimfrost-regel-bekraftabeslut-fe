@@ -1,6 +1,6 @@
-import { env, ensureEnvLoaded } from '../config/env';
 import { hittaFaststalltStatus, useBekraftaBeslutStore } from '../stores/BekraftaBeslutStore';
 import type { BeslutSelection } from '../stores/BekraftaBeslutStore';
+import { bffFetch, SaknarBehorighetError, SAKNAR_BEHORIGHET_MEDDELANDE } from './bffFetch';
 import { checkResponse, ServiceUnavailableError, SERVICE_UNAVAILABLE_MESSAGE } from './ServiceUnavailableError';
 
 export async function bekraftaBeslut(handlaggningId: string, beslut: BeslutSelection): Promise<void> {
@@ -21,8 +21,7 @@ export async function bekraftaBeslut(handlaggningId: string, beslut: BeslutSelec
   store.setError('');
 
   try {
-    await ensureEnvLoaded();
-    const patchResponse = await fetch(`${env.bffUrl}/api/regel/bekraftabeslut/${handlaggningId}`, {
+    const patchResponse = await bffFetch(`/api/regel/bekraftabeslut/${handlaggningId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -37,16 +36,18 @@ export async function bekraftaBeslut(handlaggningId: string, beslut: BeslutSelec
   } catch (err) {
     console.error('Error patching ersattningar:', err);
     store.setError(
-      err instanceof ServiceUnavailableError
-        ? SERVICE_UNAVAILABLE_MESSAGE
-        : 'Ett fel uppstod vid uppdatering av ersättningsdata.',
+      err instanceof SaknarBehorighetError
+        ? SAKNAR_BEHORIGHET_MEDDELANDE
+        : err instanceof ServiceUnavailableError
+          ? SERVICE_UNAVAILABLE_MESSAGE
+          : 'Ett fel uppstod vid uppdatering av ersättningsdata.',
     );
     store.setSubmitting(false);
     return;
   }
 
   try {
-    const doneResponse = await fetch(`${env.bffUrl}/api/regel/bekraftabeslut/done`, {
+    const doneResponse = await bffFetch('/api/regel/bekraftabeslut/done', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ handlaggningId }),
@@ -62,9 +63,11 @@ export async function bekraftaBeslut(handlaggningId: string, beslut: BeslutSelec
   } catch (err) {
     console.error('Error confirming decision:', err);
     store.setError(
-      err instanceof ServiceUnavailableError
-        ? SERVICE_UNAVAILABLE_MESSAGE
-        : 'Ett fel uppstod vid bekräftelse av beslut',
+      err instanceof SaknarBehorighetError
+        ? SAKNAR_BEHORIGHET_MEDDELANDE
+        : err instanceof ServiceUnavailableError
+          ? SERVICE_UNAVAILABLE_MESSAGE
+          : 'Ett fel uppstod vid bekräftelse av beslut',
     );
   } finally {
     store.setSubmitting(false);
