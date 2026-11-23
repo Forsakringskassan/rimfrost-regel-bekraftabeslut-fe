@@ -1,4 +1,5 @@
 import { type Page, expect, test as base } from "@playwright/test";
+import type { GetDataResponse, Referensdata } from "../src/stores/BekraftaBeslutStore";
 
 export { expect };
 
@@ -45,7 +46,7 @@ export const mockBeslutsData = {
       tom: "2026-01-31",
     },
   ],
-};
+} satisfies GetDataResponse;
 
 export const mockReferensdata = {
   avslutstyp: [{ id: "avslut-1", kod: "AUTOMATISKT", namn: "Automatiskt avslut" }],
@@ -61,7 +62,7 @@ export const defaultBekraftaStatus = { patch: 200, done: 204 };
 export async function mockBffApis(
   page: Page,
   data: typeof mockBeslutsData | { status: number } = mockBeslutsData,
-  referensdata: Record<keyof typeof mockReferensdata, object[]> = mockReferensdata,
+  referensdata: Record<keyof typeof mockReferensdata, Referensdata[]> = mockReferensdata,
   bekraftaStatus: typeof defaultBekraftaStatus = defaultBekraftaStatus,
 ) {
   // Registered first so it has the lowest priority (Playwright checks routes

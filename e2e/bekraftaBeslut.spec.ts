@@ -139,6 +139,22 @@ test.describe("BekraftaBeslutKomponent", () => {
     expect(pageErrors).toEqual([]);
   });
 
+  test("visar inte referensdata utan id eller namn", async ({ page }) => {
+    await mockBffApis(page, undefined, {
+      ...mockReferensdata,
+      avslutstyp: [
+        ...mockReferensdata.avslutstyp,
+        { kod: "UTAN_ID", namn: "Saknar id" },
+        { id: "avslut-utan-namn", kod: "UTAN_NAMN" },
+      ],
+    });
+    await gotoApp(page);
+
+    // The disabled "Välj avslutstyp" placeholder plus the one complete item.
+    await expect(page.locator("#avslutstyp option")).toHaveCount(2);
+    await expect(page.locator("#avslutstyp option", { hasText: "Saknar id" })).toHaveCount(0);
+  });
+
   for (const steg of ["patch", "done"] as const) {
     test(`visar att tjänsten inte är tillgänglig vid 503 från ${steg}`, async ({ page }) => {
       await mockBffApis(page, undefined, undefined, { ...defaultBekraftaStatus, [steg]: 503 });

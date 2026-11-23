@@ -18,8 +18,9 @@ src/
 
 ## API-specifikationer
 
-BFF-kontraktet specificeras i [rimfrost-regel-bekraftabeslut-bff-openapi](https://github.com/Forsakringskassan/rimfrost-regel-bekraftabeslut-bff-openapi) (`openapi.yaml`). Typerna i
-`BekraftaBeslutStore.ts` är handskrivna men följer specen fält för fält (snake_case).
+BFF-kontraktet specificeras i `openapi.yaml` i
+[rimfrost-regel-bekraftabeslut-bff-openapi](https://github.com/Forsakringskassan/rimfrost-regel-bekraftabeslut-bff-openapi).
+Typerna i `BekraftaBeslutStore.ts` är handskrivna men följer specen fält för fält (snake_case).
 
 | Metod | Sökväg | Beskrivning |
 |---|---|---|
