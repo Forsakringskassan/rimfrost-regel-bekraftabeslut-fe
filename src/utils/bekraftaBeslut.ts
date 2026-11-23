@@ -1,6 +1,12 @@
 import { env, ensureEnvLoaded } from '../config/env';
-import { useBekraftaBeslutStore } from '../stores/BekraftaBeslutStore';
+import { hittaFaststalltStatus, useBekraftaBeslutStore } from '../stores/BekraftaBeslutStore';
 import type { BeslutSelection } from '../stores/BekraftaBeslutStore';
+import { ServiceUnavailableError, SERVICE_UNAVAILABLE_MESSAGE } from './ServiceUnavailableError';
+
+function checkResponse(response: Response): void {
+  if (response.status === 503) throw new ServiceUnavailableError();
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+}
 
 export async function bekraftaBeslut(handlaggningId: string, beslut: BeslutSelection): Promise<void> {
   const store = useBekraftaBeslutStore();
@@ -10,7 +16,7 @@ export async function bekraftaBeslut(handlaggningId: string, beslut: BeslutSelec
     return;
   }
 
-  const faststalltStatus = store.yrkandestatusar.find((s) => s.kod.toLowerCase() === 'faststallt');
+  const faststalltStatus = hittaFaststalltStatus(store.yrkandestatusar);
   if (!faststalltStatus) {
     store.setError('Kunde inte hitta yrkandestatus "faststallt" i referensdata');
     return;
@@ -26,16 +32,20 @@ export async function bekraftaBeslut(handlaggningId: string, beslut: BeslutSelec
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         ersattningar: store.data.ersattning.map((item) => ({
-          ersattning_id: item.ersattningId,
+          ersattning_id: item.ersattning_id,
           yrkandestatus: faststalltStatus.id,
         })),
         beslut,
       }),
     });
-    if (!patchResponse.ok) throw new Error(`HTTP ${patchResponse.status}`);
+    checkResponse(patchResponse);
   } catch (err) {
     console.error('Error patching ersattningar:', err);
-    store.setError('Ett fel uppstod vid uppdatering av ersättningsdata.');
+    store.setError(
+      err instanceof ServiceUnavailableError
+        ? SERVICE_UNAVAILABLE_MESSAGE
+        : 'Ett fel uppstod vid uppdatering av ersättningsdata.',
+    );
     store.setSubmitting(false);
     return;
   }
@@ -46,7 +56,7 @@ export async function bekraftaBeslut(handlaggningId: string, beslut: BeslutSelec
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ handlaggningId }),
     });
-    if (!doneResponse.ok) throw new Error(`HTTP ${doneResponse.status}`);
+    checkResponse(doneResponse);
 
     store.setBekraftad(true);
     window.dispatchEvent(
@@ -56,7 +66,11 @@ export async function bekraftaBeslut(handlaggningId: string, beslut: BeslutSelec
     );
   } catch (err) {
     console.error('Error confirming decision:', err);
-    store.setError('Ett fel uppstod vid bekräftelse av beslut');
+    store.setError(
+      err instanceof ServiceUnavailableError
+        ? SERVICE_UNAVAILABLE_MESSAGE
+        : 'Ett fel uppstod vid bekräftelse av beslut',
+    );
   } finally {
     store.setSubmitting(false);
   }

@@ -7,25 +7,42 @@ export { expect };
 // Federation) — see src/App.vue and src/config/env.ts.
 export const devHandlaggningId = "00be1ee0-5ffd-4394-bec2-4634770d9352";
 
-// BeslutsData shape, camelCase — mapped by the bekraftabeslut BFF.
+// GetDataResponse shape as defined by rimfrost-regel-bekraftabeslut-bff-openapi
+// (snake_case) — the BFF passes the regel service's response through unchanged.
 export const mockBeslutsData = {
-  handlaggningId: devHandlaggningId,
+  handlaggning_id: devHandlaggningId,
   kund: {
     fornamn: "Lisa",
     efternamn: "Tass",
-    kon: "K",
-    anstallning: { organisationsnamn: "Region Dalarna", arbetstidProcent: 100 },
+    kon: "KVINNA",
+    anstallning: {
+      organisationsnummer: "232100-0198",
+      organisationsnamn: "Region Dalarna",
+      arbetstid_procent: 100,
+      anstallningsdag: "2020-01-01",
+      sista_anstallningsdag: null,
+    },
   },
   ersattning: [
     {
-      ersattningId: "8e4c207b-6fdc-4f4d-9084-53455eb459dd",
+      ersattning_id: "8e4c207b-6fdc-4f4d-9084-53455eb459dd",
       ersattningstyp: "042bd313-d5ef-4886-97c5-e0a1c828baca",
-      omfattningProcent: 100,
+      omfattning_procent: 100,
       belopp: 40000,
       berakningsgrund: 0,
       beslutsutfall: "JA",
+      avslagsanledning: null,
       from: "2025-12-01",
       tom: "2025-12-31",
+    },
+    {
+      ersattning_id: "3b1f6a52-0c4e-4d8a-9e57-7a2f1c9d4e60",
+      ersattningstyp: "042bd313-d5ef-4886-97c5-e0a1c828baca",
+      omfattning_procent: 50,
+      belopp: 20000,
+      berakningsgrund: 0,
+      from: "2026-01-01",
+      tom: "2026-01-31",
     },
   ],
 };
@@ -38,10 +55,14 @@ export const mockReferensdata = {
   yrkandestatus: [{ id: "status-faststallt", kod: "faststallt", namn: "Fastställt" }],
 };
 
+// Response status for PATCH /{handlaggningId} (spec: 200) and POST /done (spec: 204).
+export const defaultBekraftaStatus = { patch: 200, done: 204 };
+
 export async function mockBffApis(
   page: Page,
   data: typeof mockBeslutsData | { status: number } = mockBeslutsData,
-  referensdata: typeof mockReferensdata = mockReferensdata,
+  referensdata: Record<keyof typeof mockReferensdata, object[]> = mockReferensdata,
+  bekraftaStatus: typeof defaultBekraftaStatus = defaultBekraftaStatus,
 ) {
   // Registered first so it has the lowest priority (Playwright checks routes
   // LIFO) — it only ever needs to catch PATCH /{handlaggningId}, since every
@@ -49,7 +70,7 @@ export async function mockBffApis(
   // more specific handler registered after it.
   await page.route("**/api/regel/bekraftabeslut/*", async (route) => {
     if (route.request().method() === "PATCH") {
-      await route.fulfill({ status: 204 });
+      await route.fulfill({ status: bekraftaStatus.patch });
     } else {
       await route.continue();
     }
@@ -74,7 +95,7 @@ export async function mockBffApis(
     await route.fulfill({ json: referensdata.yrkandestatus });
   });
   await page.route("**/api/regel/bekraftabeslut/done", async (route) => {
-    await route.fulfill({ status: 204 });
+    await route.fulfill({ status: bekraftaStatus.done });
   });
   await page.route("**/api/uppgiftsbeskrivning", async (route) => {
     await route.fulfill({

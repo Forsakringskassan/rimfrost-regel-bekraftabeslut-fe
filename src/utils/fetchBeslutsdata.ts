@@ -1,7 +1,6 @@
 import { env, ensureEnvLoaded } from '../config/env';
 import { useBekraftaBeslutStore } from '../stores/BekraftaBeslutStore';
-
-class ServiceUnavailableError extends Error {}
+import { ServiceUnavailableError, SERVICE_UNAVAILABLE_MESSAGE } from './ServiceUnavailableError';
 
 export async function fetchBeslutsdata(handlaggningId: string): Promise<void> {
   const store = useBekraftaBeslutStore();
@@ -18,7 +17,7 @@ export async function fetchBeslutsdata(handlaggningId: string): Promise<void> {
   } catch (err) {
     console.error('Error fetching beslutsdata:', err);
     if (err instanceof ServiceUnavailableError) {
-      store.setError('Tjänsten är inte tillgänglig för tillfället. Försök igen senare.');
+      store.setError(SERVICE_UNAVAILABLE_MESSAGE);
     } else {
       store.setError('Ett fel uppstod vid hämtning av beslutsdata');
     }

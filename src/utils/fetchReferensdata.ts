@@ -1,8 +1,7 @@
 import { env, ensureEnvLoaded } from '../config/env';
 import { useBekraftaBeslutStore } from '../stores/BekraftaBeslutStore';
+import { ServiceUnavailableError } from './ServiceUnavailableError';
 import type { Referensdata } from '../stores/BekraftaBeslutStore';
-
-class ServiceUnavailableError extends Error {}
 
 async function fetchList(path: string): Promise<Referensdata[]> {
   const response = await fetch(`${env.bffUrl}/api/regel/bekraftabeslut/${path}`);
