@@ -1,12 +1,7 @@
 import { env, ensureEnvLoaded } from '../config/env';
 import { hittaFaststalltStatus, useBekraftaBeslutStore } from '../stores/BekraftaBeslutStore';
 import type { BeslutSelection } from '../stores/BekraftaBeslutStore';
-import { ServiceUnavailableError, SERVICE_UNAVAILABLE_MESSAGE } from './ServiceUnavailableError';
-
-function checkResponse(response: Response): void {
-  if (response.status === 503) throw new ServiceUnavailableError();
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-}
+import { checkResponse, ServiceUnavailableError, SERVICE_UNAVAILABLE_MESSAGE } from './ServiceUnavailableError';
 
 export async function bekraftaBeslut(handlaggningId: string, beslut: BeslutSelection): Promise<void> {
   const store = useBekraftaBeslutStore();
