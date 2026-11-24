@@ -1,5 +1,5 @@
 import { useBekraftaBeslutStore } from '../stores/BekraftaBeslutStore';
-import { bffFetch } from './bffFetch';
+import { bffFetch, SaknarBehorighetError, SAKNAR_BEHORIGHET_MEDDELANDE } from './bffFetch';
 
 export async function fetchUppgiftsbeskrivning(): Promise<void> {
   const store = useBekraftaBeslutStore();
@@ -16,7 +16,12 @@ export async function fetchUppgiftsbeskrivning(): Promise<void> {
   } catch (err) {
     console.error('Error fetching description:', err);
     store.setUppgiftsbeskrivning('');
+    // Tooltipen visar sitt eget fel; saknad eller avvisad token visas dessutom som
+    // huvudfel, som för övriga anrop (BEKF-NFR-01.4).
     store.setDescriptionError(true);
+    if (err instanceof SaknarBehorighetError) {
+      store.setError(SAKNAR_BEHORIGHET_MEDDELANDE);
+    }
   } finally {
     store.setDescriptionLoading(false);
   }
