@@ -48,6 +48,7 @@ Config is split between local development and container deployments.
 ```env
 VITE_BFF_URL=http://localhost:9003
 VITE_DEV_HANDLAGGNING_ID=<a handlaggningId from OUL, for standalone dev testing>
+VITE_DEV_AUTHORIZATION=Bearer <typId>:<varde>
 ```
 
 **Docker (local image testing)** — mount a `runtime-config.js` file:
@@ -94,3 +95,8 @@ volumes:
 |---|---|---|---|
 | BFF URL | `VITE_BFF_URL` | `RUNTIME_BFF_URL` | Rule BFF base URL |
 | Dev handler ID | `VITE_DEV_HANDLAGGNING_ID` | — | Fallback `handlaggningId` for standalone dev testing only |
+| Dev token | `VITE_DEV_AUTHORIZATION` | `RUNTIME_DEV_AUTHORIZATION` | Fallback `Authorization` value for standalone dev testing only; the portal passes the real one as the `authorization` prop. Never set it in a deployed environment: `runtime-config.js` is public |
+
+### Authorization
+
+The portal passes the logged-in handläggare's token as the `authorization` prop on the exposed component (`BekraftaBeslutKomponent.vue`), as the full `Authorization` header value. Every BFF call sends it unchanged (`src/utils/bffFetch.ts`). Without a token no call is made and an error message is shown.

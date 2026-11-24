@@ -17,6 +17,10 @@ function readRuntimeGlobal(): any {
 export const env = {
   bffUrl: readRuntimeGlobal().RUNTIME_BFF_URL || import.meta.env.VITE_BFF_URL || "",
   devHandlaggningId: readRuntimeGlobal().RUNTIME_DEV_HANDLAGGNING_ID || import.meta.env.VITE_DEV_HANDLAGGNING_ID || "",
+  // Bara fristående: ersätter token som portalen skickar som propen `authorization`.
+  // `??`, inte `||`, så att ett uttryckligen tomt runtime-värde vinner över .env —
+  // e2e-testerna använder det för att köra utan token.
+  devAuthorization: readRuntimeGlobal().RUNTIME_DEV_AUTHORIZATION ?? import.meta.env.VITE_DEV_AUTHORIZATION ?? "",
 };
 
 // Standalone (npm run dev / preview): index.html's own <script> tag has

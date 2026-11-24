@@ -1,13 +1,18 @@
 import type { Page } from "@playwright/test";
 import {
   defaultBekraftaStatus,
+  devAuthorization,
   expect,
   gotoApp,
   mockBeslutsData,
   mockBffApis,
   mockReferensdata,
+  setDevAuthorization,
   test,
 } from "./fixtures";
+
+const SAKNAR_BEHORIGHET =
+  "Kunde inte identifiera dig som handläggare. Logga in i handläggarportalen igen och öppna uppgiften på nytt.";
 
 // Standalone smoke tests for the bekraftabeslut MFE, run directly against its own
 // preview server (no Module Federation host) using VITE_DEV_HANDLAGGNING_ID as
@@ -171,23 +176,111 @@ test.describe("BekraftaBeslutKomponent", () => {
     });
   }
 
-  // KNOWN BUG (found via this test, not fixed here — flagged for the team):
-  // the component's error <p> lives inside `v-if="!isInfoLoading && store.data"`.
-  // fetchBeslutsdata only ever sets store.error when the fetch *fails*, i.e.
-  // exactly when store.data stays null — so the error message can never
-  // actually render; the page just goes blank instead of showing
-  // "Tjänsten är inte tillgänglig...". This test documents that current
-  // (broken) behavior rather than the intended one.
-  test("går blank vid backend-fel istället för att visa felmeddelande (känd bugg)", async ({
-    page,
-  }) => {
+  test("visar felmeddelande när beslutsdata inte kan hämtas", async ({ page }) => {
     await mockBffApis(page, { status: 503 });
     await page.goto("/");
-    await page.waitForTimeout(500);
 
-    await expect(page.locator(".beslut-information")).toHaveCount(0);
     await expect(
-      page.getByText("Tjänsten är inte tillgänglig", { exact: false }),
-    ).toHaveCount(0);
+      page.getByText("Tjänsten är inte tillgänglig för tillfället. Försök igen senare."),
+    ).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator(".beslut-information")).toHaveCount(0);
+  });
+
+  test.describe("Authorization till BFF:en", () => {
+    test("skickar handläggarens token på alla BFF-anrop", async ({ page }) => {
+      await mockBffApis(page);
+      const authByCall = new Map<string, string | undefined>();
+      page.on("request", (req) => {
+        const path = new URL(req.url()).pathname;
+        if (path.startsWith("/api/")) {
+          authByCall.set(`${req.method()} ${path}`, req.headers()["authorization"]);
+        }
+      });
+      await gotoApp(page);
+
+      const descriptionResponse = page.waitForResponse("**/api/uppgiftsbeskrivning");
+      await page.getByRole("button", { name: /Läs mer om uppgiften/ }).click();
+      await descriptionResponse;
+
+      await valjAllaBeslut(page);
+      const button = page.getByRole("button", { name: "Bekräfta beslut", exact: true });
+      await expect(button).toBeEnabled();
+      const doneResponse = page.waitForResponse("**/api/regel/bekraftabeslut/done");
+      await button.click();
+      await doneResponse;
+
+      const id = mockBeslutsData.handlaggning_id;
+      expect(Object.fromEntries(authByCall)).toEqual({
+        [`GET /api/regel/bekraftabeslut/handlaggning/${id}`]: devAuthorization,
+        "GET /api/regel/bekraftabeslut/avslutstyp": devAuthorization,
+        "GET /api/regel/bekraftabeslut/beslutstyp": devAuthorization,
+        "GET /api/regel/bekraftabeslut/beslutsutfallstyp": devAuthorization,
+        "GET /api/regel/bekraftabeslut/yrkandestatus": devAuthorization,
+        "GET /api/uppgiftsbeskrivning": devAuthorization,
+        [`PATCH /api/regel/bekraftabeslut/${id}`]: devAuthorization,
+        "POST /api/regel/bekraftabeslut/done": devAuthorization,
+      });
+    });
+
+    test("visar begripligt fel och anropar inte BFF:en när token saknas", async ({ page }) => {
+      await mockBffApis(page);
+      await setDevAuthorization(page, "");
+      const bffRequests: string[] = [];
+      page.on("request", (req) => {
+        if (new URL(req.url()).pathname.startsWith("/api/")) bffRequests.push(req.url());
+      });
+      await page.goto("/");
+
+      await expect(page.getByText(SAKNAR_BEHORIGHET)).toBeVisible({ timeout: 10_000 });
+      await expect(page.getByText("Lisa Tass")).not.toBeVisible();
+
+      await page.getByRole("button", { name: /Läs mer om uppgiften/ }).click();
+      await expect(page.getByText("Kunde inte hämta uppgiftsbeskrivningen.")).toBeVisible();
+      expect(bffRequests).toEqual([]);
+    });
+
+    test("visar begripligt fel när BFF:en svarar 401", async ({ page }) => {
+      await mockBffApis(page, { status: 401 });
+      await page.goto("/");
+
+      await expect(page.getByText(SAKNAR_BEHORIGHET)).toBeVisible({ timeout: 10_000 });
+      await expect(page.getByText("Lisa Tass")).not.toBeVisible();
+    });
+
+    test("visar begripligt fel när referensdata svarar 401", async ({ page }) => {
+      await mockBffApis(page);
+      await page.route("**/api/regel/bekraftabeslut/yrkandestatus", async (route) => {
+        await route.fulfill({ status: 401 });
+      });
+      await gotoApp(page);
+
+      await expect(page.getByText(SAKNAR_BEHORIGHET)).toBeVisible();
+    });
+
+    test("visar begripligt fel när uppgiftsbeskrivningen svarar 401", async ({ page }) => {
+      await mockBffApis(page);
+      await page.route("**/api/uppgiftsbeskrivning", async (route) => {
+        await route.fulfill({ status: 401 });
+      });
+      await gotoApp(page);
+      await expect(page.getByText("Lisa Tass")).toBeVisible();
+
+      await page.getByRole("button", { name: /Läs mer om uppgiften/ }).click();
+
+      await expect(page.getByText(SAKNAR_BEHORIGHET)).toBeVisible();
+      await expect(page.getByText("Kunde inte hämta uppgiftsbeskrivningen.")).toBeVisible();
+    });
+
+    test("visar begripligt fel när bekräftelsen svarar 401", async ({ page }) => {
+      await mockBffApis(page, undefined, undefined, { ...defaultBekraftaStatus, patch: 401 });
+      await gotoApp(page);
+
+      await valjAllaBeslut(page);
+      const button = page.getByRole("button", { name: "Bekräfta beslut", exact: true });
+      await expect(button).toBeEnabled();
+      await button.click();
+
+      await expect(page.getByText(SAKNAR_BEHORIGHET)).toBeVisible();
+    });
   });
 });

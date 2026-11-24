@@ -8,6 +8,24 @@ export { expect };
 // Federation) — see src/App.vue and src/config/env.ts.
 export const devHandlaggningId = "00be1ee0-5ffd-4394-bec2-4634770d9352";
 
+// Stands in for the token the portal passes as the `authorization` prop. The
+// standalone app reads it from RUNTIME_DEV_AUTHORIZATION — see src/App.vue.
+export const devAuthorization = "Bearer test-typ:test-varde";
+
+// Serves this app's runtime-config.js with the given dev token, so a test
+// decides whether there is a token regardless of the developer's .env
+// ("" means none). Must be called before page.goto.
+export async function setDevAuthorization(page: Page, authorization: string) {
+  await page.route("**/runtime-config.js", async (route) => {
+    await route.fulfill({
+      contentType: "application/javascript",
+      body: `window.__BEKRAFTABESLUT_FE_ENV__ = ${JSON.stringify({
+        RUNTIME_DEV_AUTHORIZATION: authorization,
+      })};`,
+    });
+  });
+}
+
 // GetDataResponse shape as defined by rimfrost-regel-bekraftabeslut-bff-openapi
 // (snake_case) — the BFF passes the regel service's response through unchanged.
 export const mockBeslutsData = {
@@ -65,6 +83,7 @@ export async function mockBffApis(
   referensdata: Record<keyof typeof mockReferensdata, Referensdata[]> = mockReferensdata,
   bekraftaStatus: typeof defaultBekraftaStatus = defaultBekraftaStatus,
 ) {
+  await setDevAuthorization(page, devAuthorization);
   // Registered first so it has the lowest priority (Playwright checks routes
   // LIFO) — it only ever needs to catch PATCH /{handlaggningId}, since every
   // named single-segment path below (avslutstyp, done, ...) is matched by a

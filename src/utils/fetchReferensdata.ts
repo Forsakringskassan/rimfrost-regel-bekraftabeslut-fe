@@ -1,10 +1,10 @@
-import { env, ensureEnvLoaded } from '../config/env';
 import { useBekraftaBeslutStore } from '../stores/BekraftaBeslutStore';
+import { bffFetch, SaknarBehorighetError, SAKNAR_BEHORIGHET_MEDDELANDE } from './bffFetch';
 import { checkResponse, ServiceUnavailableError } from './ServiceUnavailableError';
 import type { Referensdata } from '../stores/BekraftaBeslutStore';
 
 async function fetchList(path: string): Promise<Referensdata[]> {
-  const response = await fetch(`${env.bffUrl}/api/regel/bekraftabeslut/${path}`);
+  const response = await bffFetch(`/api/regel/bekraftabeslut/${path}`);
   checkResponse(response);
   const items: Referensdata[] = await response.json();
   // Alla fält är valfria i BFF-specen. Ett alternativ utan id kan inte skickas i PATCH
@@ -15,7 +15,6 @@ async function fetchList(path: string): Promise<Referensdata[]> {
 export async function fetchReferensdata(): Promise<void> {
   const store = useBekraftaBeslutStore();
   try {
-    await ensureEnvLoaded();
     const [avslutstyper, beslutstyper, beslutsutfallstyper, yrkandestatusar] = await Promise.all([
       fetchList('avslutstyp'),
       fetchList('beslutstyp'),
@@ -25,7 +24,10 @@ export async function fetchReferensdata(): Promise<void> {
     store.setReferensdata(avslutstyper, beslutstyper, beslutsutfallstyper, yrkandestatusar);
   } catch (err) {
     console.error('Error fetching referensdata:', err);
-    if (err instanceof ServiceUnavailableError) {
+    store.setReferensdata([], [], [], []);
+    if (err instanceof SaknarBehorighetError) {
+      store.setError(SAKNAR_BEHORIGHET_MEDDELANDE);
+    } else if (err instanceof ServiceUnavailableError) {
       store.setError('Referensdatatjänsten är inte tillgänglig. Försök igen senare.');
     } else {
       store.setError('Ett fel uppstod vid hämtning av referensdata');

@@ -5,15 +5,17 @@
 
   const props = defineProps<{
     handlaggningId: string;
+    authorization?: string | null;
   }>();
 
   const handlaggningId = props.handlaggningId || env.devHandlaggningId;
+  const authorization = props.authorization ?? (env.devAuthorization || null);
 </script>
 
 <template>
   <ToastContainer />
   <div>
-    <BekraftaBeslutKomponent :handlaggning-id="handlaggningId" />
+    <BekraftaBeslutKomponent :handlaggning-id="handlaggningId" :authorization="authorization" />
   </div>
 </template>
 
