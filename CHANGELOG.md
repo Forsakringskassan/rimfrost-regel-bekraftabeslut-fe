@@ -2,6 +2,21 @@
 
 Changelog of rimfrost-regel-bekraftabeslut-fe.
 
+## 0.0.5 (2026-11-24)
+
+### Bug Fixes
+
+-  show the Authorization error when the description call is rejected (FKPOC-1496) ([c2c40](https://github.com/Forsakringskassan/rimfrost-regel-bekraftabeslut-fe/commit/c2c407da4fe2465) LisaWedin_Ductus)  
+-  address review comments (FKPOC-1496) ([67d95](https://github.com/Forsakringskassan/rimfrost-regel-bekraftabeslut-fe/commit/67d95d4993155cf) LisaWedin_Ductus)  
+-  send the handläggare's token to the BFF (FKPOC-1496) ([d9b15](https://github.com/Forsakringskassan/rimfrost-regel-bekraftabeslut-fe/commit/d9b15fd63cf1f62) LisaWedin_Ductus)  
+-  address review comments (FKPOC-1488) ([01235](https://github.com/Forsakringskassan/rimfrost-regel-bekraftabeslut-fe/commit/012354339da21af) LisaWedin_Ductus)  
+-  align data model with bekraftabeslut BFF spec (FKPOC-1488) ([27645](https://github.com/Forsakringskassan/rimfrost-regel-bekraftabeslut-fe/commit/276456e805374cc) LisaWedin_Ductus)  
+
+### Other changes
+
+
+## rimfrost-1_2 (2026-09-17)
+
 ## 0.0.4 (2026-09-17)
 
 ### Bug Fixes
